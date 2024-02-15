@@ -1,11 +1,7 @@
 ﻿using BepInEx;
 using Aki.Reflection.Patching;
 using System.Reflection;
-using EFT;
-using System.Collections;
 using UnityEngine;
-using Audio.SpatialSystem;
-using static Val;
 
 namespace BossNotifier {
     [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.0.0")]
