@@ -16,7 +16,7 @@ using BepInEx.Configuration;
 using Comfort.Common;
 
 namespace BossNotifier {
-    [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.0.0")]
+    [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.1.0")]
     public class BossNotifierPlugin : BaseUnityPlugin {
         public static ConfigEntry<KeyboardShortcut> showBossesKeyCode;
         public static ConfigEntry<bool> showNotificationsOnRaidStart;
