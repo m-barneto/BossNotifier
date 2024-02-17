@@ -31,6 +31,7 @@ namespace BossNotifier {
             Logger.LogInfo($"Plugin BossNotifier is loaded!");
         }
     }
+
     internal class BossLocationSpawnPatch : ModulePatch {
         protected override MethodBase GetTargetMethod() => typeof(BossLocationSpawn).GetMethod("Init");
 
