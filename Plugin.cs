@@ -2,22 +2,14 @@
 using Aki.Reflection.Patching;
 using System.Reflection;
 using UnityEngine;
-using UnityEngine.Playables;
 using EFT.Communications;
-using EFT.UI;
 using EFT;
-using System;
-using System.Reflection;
-using Aki.Reflection.Patching;
-using EFT;
-using UnityEngine;
 using System.Collections.Generic;
 using BepInEx.Configuration;
 using Comfort.Common;
-using Aki.Common.Http;
 
 namespace BossNotifier {
-    [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.1.0")]
+    [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.2.0")]
     public class BossNotifierPlugin : BaseUnityPlugin {
         public static ConfigEntry<KeyboardShortcut> showBossesKeyCode;
         public static ConfigEntry<bool> showNotificationsOnRaidStart;
