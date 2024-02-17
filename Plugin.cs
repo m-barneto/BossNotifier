@@ -14,21 +14,34 @@ using UnityEngine;
 using System.Collections.Generic;
 using BepInEx.Configuration;
 using Comfort.Common;
+using Aki.Common.Http;
 
 namespace BossNotifier {
     [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.1.0")]
     public class BossNotifierPlugin : BaseUnityPlugin {
         public static ConfigEntry<KeyboardShortcut> showBossesKeyCode;
         public static ConfigEntry<bool> showNotificationsOnRaidStart;
+        public static ConfigEntry<int> intelCenterUnlockLevel;
 
         private void Awake() {
             showBossesKeyCode = Config.Bind("Boss Notifier", "Keyboard Shortcut", new KeyboardShortcut(KeyCode.O), "Key to show boss notifications.");
             showNotificationsOnRaidStart = Config.Bind("Boss Notifier", "Show Bosses on Raid Start", true, "Show bosses on raid start.");
+            intelCenterUnlockLevel = Config.Bind<int>("Balance", "Lock bosses behind Intel Center", 0, "Level to unlock at.");
 
             new BossLocationSpawnPatch().Enable();
             new NewGamePatch().Enable();
 
+            base.Config.SettingChanged += this.Config_SettingChanged;
+
             Logger.LogInfo($"Plugin BossNotifier is loaded!");
+        }
+
+        private void Config_SettingChanged(object sender, SettingChangedEventArgs e) {
+            ConfigEntryBase changedSetting = e.ChangedSetting;
+            if (changedSetting.Definition.Key.Equals("Lock bosses behind Intel Center")) {
+                if (intelCenterUnlockLevel.Value < 0) intelCenterUnlockLevel.Value = 0;
+                else if (intelCenterUnlockLevel.Value > 3) intelCenterUnlockLevel.Value = 3;
+            }
         }
     }
 
@@ -127,7 +140,10 @@ namespace BossNotifier {
 
         [PatchPrefix]
         public static void PatchPrefix() {
-            BossNotifierMono.Init();
+            int intelCenterLevel = Singleton<GameWorld>.Instance.MainPlayer.Profile.Hideout.Areas[11].level;
+            if (intelCenterLevel >= BossNotifierPlugin.intelCenterUnlockLevel.Value) {
+                BossNotifierMono.Init();
+            }
         }
     }
 
