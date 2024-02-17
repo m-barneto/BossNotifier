@@ -18,7 +18,7 @@ namespace BossNotifier {
         private void Awake() {
             showBossesKeyCode = Config.Bind("Boss Notifier", "Keyboard Shortcut", new KeyboardShortcut(KeyCode.O), "Key to show boss notifications.");
             showNotificationsOnRaidStart = Config.Bind("Boss Notifier", "Show Bosses on Raid Start", true, "Show bosses on raid start.");
-            intelCenterUnlockLevel = Config.Bind<int>("Balance", "Lock bosses behind Intel Center", 0, "Level to unlock at.");
+            intelCenterUnlockLevel = Config.Bind<int>("Balance", "Intel Center Level Requirement", 0, "Level to unlock at.");
 
             new BossLocationSpawnPatch().Enable();
             new NewGamePatch().Enable();
@@ -30,7 +30,7 @@ namespace BossNotifier {
 
         private void Config_SettingChanged(object sender, SettingChangedEventArgs e) {
             ConfigEntryBase changedSetting = e.ChangedSetting;
-            if (changedSetting.Definition.Key.Equals("Lock bosses behind Intel Center")) {
+            if (changedSetting.Definition.Key.Equals("Intel Center Level Requirement")) {
                 if (intelCenterUnlockLevel.Value < 0) intelCenterUnlockLevel.Value = 0;
                 else if (intelCenterUnlockLevel.Value > 3) intelCenterUnlockLevel.Value = 3;
             }
