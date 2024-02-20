@@ -71,9 +71,9 @@ namespace BossNotifier {
         private void Awake() {
             showBossesKeyCode = Config.Bind("Boss Notifier", "Keyboard Shortcut", new KeyboardShortcut(KeyCode.O), "Key to show boss notifications.");
             showNotificationsOnRaidStart = Config.Bind("Boss Notifier", "Show Bosses on Raid Start", true, "Show bosses on raid start.");
-            intelCenterUnlockLevel = Config.Bind<int>("Balance", "Intel Center Level Requirement", 0, "Level to unlock at.");
+            intelCenterUnlockLevel = Config.Bind("Balance", "Intel Center Level Requirement", 0, "Level to unlock at.");
             showBossLocation = Config.Bind("Balance", "Show Boss Spawn Location", true, "Show boss locations in notification.");
-            intelCenterLocationUnlockLevel = Config.Bind<int>("Balance", "Intel Center Location Level Requirement", 0, "Unlocks showing boss spawn location.");
+            intelCenterLocationUnlockLevel = Config.Bind("Balance", "Intel Center Location Level Requirement", 0, "Unlocks showing boss spawn location.");
 
 
             new BossLocationSpawnPatch().Enable();
@@ -89,6 +89,9 @@ namespace BossNotifier {
             if (changedSetting.Definition.Key.Equals("Intel Center Level Requirement")) {
                 if (intelCenterUnlockLevel.Value < 0) intelCenterUnlockLevel.Value = 0;
                 else if (intelCenterUnlockLevel.Value > 3) intelCenterUnlockLevel.Value = 3;
+            } else if (changedSetting.Definition.Key.Equals("Intel Center Location Level Requirement")) {
+                if (intelCenterLocationUnlockLevel.Value < 0) intelCenterLocationUnlockLevel.Value = 0;
+                else if (intelCenterLocationUnlockLevel.Value > 3) intelCenterLocationUnlockLevel.Value = 3;
             }
         }
 
@@ -114,8 +117,6 @@ namespace BossNotifier {
                 if (name == null) return;
 
                 string location = BossNotifierPlugin.GetZoneName(__instance.BossZone);
-
-
                 // If we dont want locations, add "" as the value
                 if (BossNotifierPlugin.showBossLocation.Value) {
                     // Empty string for no location/everywhere on factory, null for unknown zone
@@ -165,7 +166,7 @@ namespace BossNotifier {
         public void Awake() {
             foreach (var bossSpawn in BossLocationSpawnPatch.bossesInRaid) {
                 string notificationMessage;
-                if (isLocationUnlocked) {
+                if (isLocationUnlocked || !bossSpawn.Value.IsNullOrEmpty()) {
                     notificationMessage = $"{bossSpawn.Key} @ {bossSpawn.Value}";
                 } else {
                     notificationMessage = $"{bossSpawn.Key} has spawned.";
