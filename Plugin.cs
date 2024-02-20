@@ -193,13 +193,11 @@ namespace BossNotifier {
             if (!UnityInput.Current.GetKeyDown(key.MainKey)) {
                 return false;
             }
-
             foreach (var modifier in key.Modifiers) {
                 if (!UnityInput.Current.GetKey(modifier)) {
                     return false;
                 }
             }
-
             return true;
         }
     }
