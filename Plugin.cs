@@ -72,6 +72,8 @@ namespace BossNotifier {
             showBossesKeyCode = Config.Bind("Boss Notifier", "Keyboard Shortcut", new KeyboardShortcut(KeyCode.O), "Key to show boss notifications.");
             showNotificationsOnRaidStart = Config.Bind("Boss Notifier", "Show Bosses on Raid Start", true, "Show bosses on raid start.");
             intelCenterUnlockLevel = Config.Bind<int>("Balance", "Intel Center Level Requirement", 0, "Level to unlock at.");
+            showBossLocation = Config.Bind("Balance", "Show Boss Spawn Location", true, "Show boss locations in notification.");
+            intelCenterLocationUnlockLevel = Config.Bind<int>("Balance", "Intel Center Location Level Requirement", 0, "Unlocks showing boss spawn location.");
 
 
             new BossLocationSpawnPatch().Enable();
@@ -103,7 +105,7 @@ namespace BossNotifier {
     internal class BossLocationSpawnPatch : ModulePatch {
         protected override MethodBase GetTargetMethod() => typeof(BossLocationSpawn).GetMethod("Init");
 
-        public static HashSet<string> bossesInRaid = new HashSet<string>();
+        public static Dictionary<string, string> bossesInRaid = new Dictionary<string, string>();
 
         [PatchPostfix]
         private static void PatchPostfix(BossLocationSpawn __instance) {
@@ -111,8 +113,21 @@ namespace BossNotifier {
                 string name = BossNotifierPlugin.GetBossName(__instance.BossType);
                 if (name == null) return;
 
-                bossesInRaid.Add(__instance.BossZone);
-                bossesInRaid.Add(name);
+                string location = BossNotifierPlugin.GetZoneName(__instance.BossZone);
+
+
+                // If we dont want locations, add "" as the value
+                if (BossNotifierPlugin.showBossLocation.Value) {
+                    // Empty string for no location/everywhere on factory, null for unknown zone
+                    // If we want locations and the value is null, it means unknown zone
+                    if (location == null) {
+                        bossesInRaid.Add(name, __instance.BossZone);
+                    } else {
+                        bossesInRaid.Add(name, location);
+                    }
+                } else {
+                    bossesInRaid.Add(name, "");
+                }
             }
         }
     }
@@ -124,25 +139,40 @@ namespace BossNotifier {
         public static void PatchPrefix() {
             int intelCenterLevel = Singleton<GameWorld>.Instance.MainPlayer.Profile.Hideout.Areas[11].level;
             if (intelCenterLevel >= BossNotifierPlugin.intelCenterUnlockLevel.Value) {
-                BossNotifierMono.Init();
+                BossNotifierMono.Init(intelCenterLevel);
             }
         }
     }
 
     class BossNotifierMono : MonoBehaviour {
+        private static bool isLocationUnlocked;
+        private List<string> bossNotificationMessages = new List<string>();
+
         private void SendBossNotifications() {
-            foreach (var boss in BossLocationSpawnPatch.bossesInRaid) {
-                NotificationManagerClass.DisplayMessageNotification($"{boss} will spawn.", ENotificationDurationType.Long);
+            foreach (var bossMessage in bossNotificationMessages) {
+                NotificationManagerClass.DisplayMessageNotification(bossMessage, ENotificationDurationType.Long);
             }
         }
 
-        public static void Init() {
+        public static void Init(int intelCenterLevel) {
             if (Singleton<IBotGame>.Instantiated) {
+                isLocationUnlocked = intelCenterLevel >= BossNotifierPlugin.intelCenterLocationUnlockLevel.Value;
+
                 GClass5.GetOrAddComponent<BossNotifierMono>(Singleton<GameWorld>.Instance);
             }
         }
 
         public void Awake() {
+            foreach (var bossSpawn in BossLocationSpawnPatch.bossesInRaid) {
+                string notificationMessage;
+                if (isLocationUnlocked) {
+                    notificationMessage = $"{bossSpawn.Key} @ {bossSpawn.Value}";
+                } else {
+                    notificationMessage = $"{bossSpawn.Key} has spawned.";
+                }
+                bossNotificationMessages.Add(notificationMessage);
+            }
+
             if (!BossNotifierPlugin.showNotificationsOnRaidStart.Value) return;
             SendBossNotifications();
         }
