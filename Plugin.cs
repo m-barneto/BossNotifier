@@ -166,10 +166,10 @@ namespace BossNotifier {
         public void Awake() {
             foreach (var bossSpawn in BossLocationSpawnPatch.bossesInRaid) {
                 string notificationMessage;
-                if (isLocationUnlocked || !bossSpawn.Value.IsNullOrEmpty()) {
-                    notificationMessage = $"{bossSpawn.Key} @ {bossSpawn.Value}";
-                } else {
+                if (!isLocationUnlocked || bossSpawn.Value.IsNullOrEmpty()) {
                     notificationMessage = $"{bossSpawn.Key} has spawned.";
+                } else {
+                    notificationMessage = $"{bossSpawn.Key} @ {bossSpawn.Value}";
                 }
                 bossNotificationMessages.Add(notificationMessage);
             }
@@ -179,13 +179,28 @@ namespace BossNotifier {
         }
 
         public void Update() {
-            if (BossNotifierPlugin.showBossesKeyCode.Value.IsDown()) {
+            if (IsKeyPressed(BossNotifierPlugin.showBossesKeyCode.Value)) {
                 SendBossNotifications();
             }
         }
 
         public void OnDestroy() {
             BossLocationSpawnPatch.bossesInRaid.Clear();
+        }
+
+        // Credit to DrakiaXYZ, thank you!
+        bool IsKeyPressed(KeyboardShortcut key) {
+            if (!UnityInput.Current.GetKeyDown(key.MainKey)) {
+                return false;
+            }
+
+            foreach (var modifier in key.Modifiers) {
+                if (!UnityInput.Current.GetKey(modifier)) {
+                    return false;
+                }
+            }
+
+            return true;
         }
     }
 }
