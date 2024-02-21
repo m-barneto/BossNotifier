@@ -11,7 +11,7 @@ using BepInEx.Logging;
 using System.Linq;
 
 namespace BossNotifier {
-    [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.2.1")]
+    [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.3.1")]
     public class BossNotifierPlugin : BaseUnityPlugin {
         public static ConfigEntry<KeyboardShortcut> showBossesKeyCode;
         public static ConfigEntry<bool> showNotificationsOnRaidStart;
