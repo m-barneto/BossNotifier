@@ -204,7 +204,7 @@ namespace BossNotifier {
             }
         }
 
-        public void Awake() {
+        public void Start() {
             bool isNight = Time.time - 100f > 1f;
             foreach (var bossSpawn in BossLocationSpawnPatch.bossesInRaid) {
                 if (isNight && bossSpawn.Key.Equals("Cultists")) continue;
