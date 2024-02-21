@@ -7,6 +7,8 @@ using EFT;
 using System.Collections.Generic;
 using BepInEx.Configuration;
 using Comfort.Common;
+using BepInEx.Logging;
+using System.Linq;
 
 namespace BossNotifier {
     [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.2.0")]
@@ -16,6 +18,12 @@ namespace BossNotifier {
         public static ConfigEntry<int> intelCenterUnlockLevel;
         public static ConfigEntry<bool> showBossLocation;
         public static ConfigEntry<int> intelCenterLocationUnlockLevel;
+
+        private static ManualLogSource logger;
+
+        public static void LogInfo(string msg) {
+            logger.LogInfo(msg);
+        }
 
         public static readonly Dictionary<WildSpawnType, string> bossNames = new Dictionary<WildSpawnType, string>() {
             { WildSpawnType.bossBully, "Reshala" },
@@ -33,11 +41,19 @@ namespace BossNotifier {
             { WildSpawnType.crazyAssaultEvent, "Crazy Scavs" },
             { WildSpawnType.exUsec, "Rogues" },
         };
+        public static readonly HashSet<string> pluralBosses = new HashSet<string>() {
+            "Goons",
+            "Cultists",
+            "Blood Hounds",
+            "Crazy Scavs",
+            "Rogues",
+        };
         // Empty string for no location/everywhere on factory, null for unknown zone
         public static readonly Dictionary<string, string> zoneNames = new Dictionary<string, string>() {
             {"ZoneScavBase", "Scav Base" },
             {"ZoneDormitory", "Dormitory" },
             {"ZoneGasStation", "Gas Station" },
+            {"ZoneTankSquare", "Old Construction" },
             {"BotZone", "" },
             {"ZoneCenterBot", "Center" },
             {"ZoneCenter", "Center" },
@@ -69,6 +85,8 @@ namespace BossNotifier {
 
 
         private void Awake() {
+            logger = Logger;
+
             showBossesKeyCode = Config.Bind("Boss Notifier", "Keyboard Shortcut", new KeyboardShortcut(KeyCode.O), "Key to show boss notifications.");
             showNotificationsOnRaidStart = Config.Bind("Boss Notifier", "Show Bosses on Raid Start", true, "Show bosses on raid start.");
             intelCenterUnlockLevel = Config.Bind("Balance", "Intel Center Level Requirement", 0, "Level to unlock at.");
@@ -101,6 +119,7 @@ namespace BossNotifier {
         }
 
         public static string GetZoneName(string zoneId) {
+            // If zoneId is in zoneNames, return value, otherwise return null
             return zoneNames.ContainsKey(zoneId) ? zoneNames[zoneId] : null;
         }
     }
@@ -110,24 +129,46 @@ namespace BossNotifier {
 
         public static Dictionary<string, string> bossesInRaid = new Dictionary<string, string>();
 
+        private static void TryAddBoss(string boss, string location) {
+            if (location == null) {
+                Logger.LogError("Tried to add boss with null location!");
+                return;
+            }
+            // If boss is already added
+            if (bossesInRaid.ContainsKey(boss)) {
+                // If location is present, append the new location
+                // If new location isnt logged, isn't empty, and previous
+                if (!bossesInRaid[boss].Contains(location) && !location.Equals("")) {
+                    if (bossesInRaid[boss].Equals("")) {
+                        bossesInRaid[boss] = location;
+                    } else {
+                        bossesInRaid[boss] += ", " + location;
+                    }
+                }
+            } else {
+                // Add the boss entry
+                bossesInRaid.Add(boss, location);
+            }
+        }
+
         [PatchPostfix]
         private static void PatchPostfix(BossLocationSpawn __instance) {
             if (__instance.ShallSpawn) {
                 string name = BossNotifierPlugin.GetBossName(__instance.BossType);
                 if (name == null) return;
 
-                string location = BossNotifierPlugin.GetZoneName(__instance.BossZone);
-                // If we dont want locations, add "" as the value
-                if (BossNotifierPlugin.showBossLocation.Value) {
-                    // Empty string for no location/everywhere on factory, null for unknown zone
-                    // If we want locations and the value is null, it means unknown zone
+                string location = BossNotifierPlugin.GetZoneName(__instance.BornZone);
+
+                if (!BossNotifierPlugin.showBossLocation.Value || location == null || location.Equals("")) {
                     if (location == null) {
-                        bossesInRaid.Add(name, __instance.BossZone);
+                        // Unknown location
+                        TryAddBoss(name, __instance.BornZone);
                     } else {
-                        bossesInRaid.Add(name, location);
+                        TryAddBoss(name, "");
                     }
                 } else {
-                    bossesInRaid.Add(name, "");
+                    // Location is unlocked and location isnt null
+                    TryAddBoss(name, location);
                 }
             }
         }
@@ -164,11 +205,15 @@ namespace BossNotifier {
         }
 
         public void Awake() {
+            bool isNight = Time.time - 100f > 1f;
             foreach (var bossSpawn in BossLocationSpawnPatch.bossesInRaid) {
+                if (isNight && bossSpawn.Key.Equals("Cultists")) continue;
+
                 string notificationMessage;
-                if (!isLocationUnlocked || bossSpawn.Value.IsNullOrEmpty()) {
-                    notificationMessage = $"{bossSpawn.Key} has spawned.";
+                if (!isLocationUnlocked || bossSpawn.Value == null || bossSpawn.Value.Equals("")) {
+                    notificationMessage = $"{bossSpawn.Key} {(BossNotifierPlugin.pluralBosses.Contains(bossSpawn.Key) ? "have" : "has")} spawned.";
                 } else {
+                    // Location is unlocked and location isnt null
                     notificationMessage = $"{bossSpawn.Key} @ {bossSpawn.Value}";
                 }
                 bossNotificationMessages.Add(notificationMessage);
