@@ -120,6 +120,9 @@ namespace BossNotifier {
                 if (intelCenterLocationUnlockLevel.Value < 0) intelCenterLocationUnlockLevel.Value = 0;
                 else if (intelCenterLocationUnlockLevel.Value > 3) intelCenterLocationUnlockLevel.Value = 3;
             }
+
+            // If player is in a raid, reset their notifications to reflect changes
+            if (BossNotifierMono.Instance) BossNotifierMono.Instance.GenerateBossNotifications();
         }
 
         // Get boss name by type
@@ -208,6 +211,8 @@ namespace BossNotifier {
 
     // Monobehavior for boss notifier
     class BossNotifierMono : MonoBehaviour {
+        // Required to invalidate notification cache on settings changed event.
+        public static BossNotifierMono Instance;
         // Flag indicating if boss locations are unlocked
         private static bool isLocationUnlocked;
         // Caching the notification messages
@@ -224,7 +229,7 @@ namespace BossNotifier {
             if (Singleton<IBotGame>.Instantiated) {
                 isLocationUnlocked = BossNotifierPlugin.showBossLocation.Value && (intelCenterLevel >= BossNotifierPlugin.intelCenterLocationUnlockLevel.Value);
 
-                GClass5.GetOrAddComponent<BossNotifierMono>(Singleton<GameWorld>.Instance);
+                Instance = GClass5.GetOrAddComponent<BossNotifierMono>(Singleton<GameWorld>.Instance);
             }
         }
 
@@ -246,7 +251,7 @@ namespace BossNotifier {
             BossLocationSpawnPatch.bossesInRaid.Clear();
         }
 
-        private void GenerateBossNotifications() {
+        public void GenerateBossNotifications() {
             // Clear out boss notification cache
             bossNotificationMessages = new List<string>();
 
