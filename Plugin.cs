@@ -213,12 +213,14 @@ namespace BossNotifier {
     class BossNotifierMono : MonoBehaviour {
         // Required to invalidate notification cache on settings changed event.
         public static BossNotifierMono Instance;
-        // Flag indicating if boss locations are unlocked
-        private static bool isLocationUnlocked;
         // Caching the notification messages
         private List<string> bossNotificationMessages;
+        // Intel Center level, only updated when raid is entered.
+        private int intelCenterLevel;
 
         private void SendBossNotifications() {
+            if (intelCenterLevel < BossNotifierPlugin.intelCenterUnlockLevel.Value) return;
+
             foreach (var bossMessage in bossNotificationMessages) {
                 NotificationManagerClass.DisplayMessageNotification(bossMessage, ENotificationDurationType.Long);
             }
@@ -227,9 +229,8 @@ namespace BossNotifier {
         // Initializes boss notifier mono and attaches it to the game world object
         public static void Init(int intelCenterLevel) {
             if (Singleton<IBotGame>.Instantiated) {
-                isLocationUnlocked = BossNotifierPlugin.showBossLocation.Value && (intelCenterLevel >= BossNotifierPlugin.intelCenterLocationUnlockLevel.Value);
-
                 Instance = GClass5.GetOrAddComponent<BossNotifierMono>(Singleton<GameWorld>.Instance);
+                Instance.intelCenterLevel = intelCenterLevel;
             }
         }
 
@@ -258,6 +259,10 @@ namespace BossNotifier {
             // Check if it's daytime to prevent showing Cultist notif.
             // This is the same method that DayTimeCultists patches so if that mod is installed then this always returns false
             bool isDayTime = Singleton<IBotGame>.Instance.BotsController.ZonesLeaveController.IsDay();
+
+            // Get whether location is unlocked or not.
+            int intelCenterLevel = Singleton<GameWorld>.Instance.MainPlayer.Profile.Hideout.Areas[11].level;
+            bool isLocationUnlocked = BossNotifierPlugin.showBossLocation.Value && (intelCenterLevel >= BossNotifierPlugin.intelCenterLocationUnlockLevel.Value);
 
             foreach (var bossSpawn in BossLocationSpawnPatch.bossesInRaid) {
                 // If it's daytime then cultists don't spawn
