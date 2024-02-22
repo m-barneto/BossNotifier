@@ -9,9 +9,10 @@ using BepInEx.Configuration;
 using Comfort.Common;
 using BepInEx.Logging;
 using System.Linq;
+using BepInEx.Bootstrap;
 
 namespace BossNotifier {
-    [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.3.1")]
+    [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.3.2")]
     public class BossNotifierPlugin : BaseUnityPlugin {
         public static ConfigEntry<KeyboardShortcut> showBossesKeyCode;
         public static ConfigEntry<bool> showNotificationsOnRaidStart;
@@ -83,7 +84,6 @@ namespace BossNotifier {
             {"ZoneWoodCutter", "Wood Cutter" },
         };
 
-
         private void Awake() {
             logger = Logger;
 
@@ -104,6 +104,8 @@ namespace BossNotifier {
 
         private void Config_SettingChanged(object sender, SettingChangedEventArgs e) {
             ConfigEntryBase changedSetting = e.ChangedSetting;
+
+            // Clamp Intel Level to valid values.
             if (changedSetting.Definition.Key.Equals("Intel Center Level Requirement")) {
                 if (intelCenterUnlockLevel.Value < 0) intelCenterUnlockLevel.Value = 0;
                 else if (intelCenterUnlockLevel.Value > 3) intelCenterUnlockLevel.Value = 3;
@@ -131,7 +133,7 @@ namespace BossNotifier {
 
         private static void TryAddBoss(string boss, string location) {
             if (location == null) {
-                Logger.LogError("Tried to add boss with null location!");
+                Logger.LogError("Tried to add boss with null location.");
                 return;
             }
             // If boss is already added
@@ -162,7 +164,7 @@ namespace BossNotifier {
                 if (!BossNotifierPlugin.showBossLocation.Value || location == null || location.Equals("")) {
                     if (location == null) {
                         // Unknown location
-                        TryAddBoss(name, __instance.BornZone);
+                        TryAddBoss(name, __instance.BornZone.Replace("Bot", "").Replace("Zone", ""));
                     } else {
                         TryAddBoss(name, "");
                     }
@@ -198,16 +200,18 @@ namespace BossNotifier {
 
         public static void Init(int intelCenterLevel) {
             if (Singleton<IBotGame>.Instantiated) {
-                isLocationUnlocked = intelCenterLevel >= BossNotifierPlugin.intelCenterLocationUnlockLevel.Value;
+                isLocationUnlocked = intelCenterLevel >= BossNotifierPlugin.intelCenterLocationUnlockLevel.Value && BossNotifierPlugin.showBossLocation.Value;
 
                 GClass5.GetOrAddComponent<BossNotifierMono>(Singleton<GameWorld>.Instance);
             }
         }
 
         public void Start() {
-            bool isNight = Time.time - 100f > 1f;
+            // Check if it's daytime to prevent showing Cultist notif.
+            // This is the same method that DayTimeCultists patches so if that mod is installed then this always returns false
+            bool isDayTime = Singleton<IBotGame>.Instance.BotsController.ZonesLeaveController.IsDay();
             foreach (var bossSpawn in BossLocationSpawnPatch.bossesInRaid) {
-                if (isNight && bossSpawn.Key.Equals("Cultists")) continue;
+                if (isDayTime && bossSpawn.Key.Equals("Cultists")) continue;
 
                 string notificationMessage;
                 if (!isLocationUnlocked || bossSpawn.Value == null || bossSpawn.Value.Equals("")) {
@@ -216,6 +220,7 @@ namespace BossNotifier {
                     // Location is unlocked and location isnt null
                     notificationMessage = $"{bossSpawn.Key} @ {bossSpawn.Value}";
                 }
+                BossNotifierPlugin.LogInfo(notificationMessage);
                 bossNotificationMessages.Add(notificationMessage);
             }
 
