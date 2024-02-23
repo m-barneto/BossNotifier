@@ -8,8 +8,6 @@ using System.Collections.Generic;
 using BepInEx.Configuration;
 using Comfort.Common;
 using BepInEx.Logging;
-using System.Linq;
-using BepInEx.Bootstrap;
 
 namespace BossNotifier {
     [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.3.2")]
