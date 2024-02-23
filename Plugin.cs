@@ -235,7 +235,7 @@ namespace BossNotifier {
             GenerateBossNotifications();
 
             if (!BossNotifierPlugin.showNotificationsOnRaidStart.Value) return;
-            SendBossNotifications();
+            Invoke("SendBossNotifications", 2f);
         }
 
         public void Update() {
