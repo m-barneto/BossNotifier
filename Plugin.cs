@@ -202,10 +202,7 @@ namespace BossNotifier {
         [PatchPrefix]
         public static void PatchPrefix() {
             // If intel center level allows us to access notifications then start BossNotifierMono
-            int intelCenterLevel = Singleton<GameWorld>.Instance.MainPlayer.Profile.Hideout.Areas[11].level;
-            if (intelCenterLevel >= BossNotifierPlugin.intelCenterUnlockLevel.Value) {
-                BossNotifierMono.Init(intelCenterLevel);
-            }
+            BossNotifierMono.Init();
         }
     }
 
@@ -227,10 +224,10 @@ namespace BossNotifier {
         }
 
         // Initializes boss notifier mono and attaches it to the game world object
-        public static void Init(int intelCenterLevel) {
+        public static void Init() {
             if (Singleton<IBotGame>.Instantiated) {
                 Instance = GClass5.GetOrAddComponent<BossNotifierMono>(Singleton<GameWorld>.Instance);
-                Instance.intelCenterLevel = intelCenterLevel;
+                Instance.intelCenterLevel = Singleton<GameWorld>.Instance.MainPlayer.Profile.Hideout.Areas[11].level;
             }
         }
 
@@ -253,6 +250,8 @@ namespace BossNotifier {
         }
 
         public void GenerateBossNotifications() {
+            BossNotifierPlugin.LogInfo("Generating... " + intelCenterLevel);
+
             // Clear out boss notification cache
             bossNotificationMessages = new List<string>();
 
@@ -261,7 +260,6 @@ namespace BossNotifier {
             bool isDayTime = Singleton<IBotGame>.Instance.BotsController.ZonesLeaveController.IsDay();
 
             // Get whether location is unlocked or not.
-            int intelCenterLevel = Singleton<GameWorld>.Instance.MainPlayer.Profile.Hideout.Areas[11].level;
             bool isLocationUnlocked = BossNotifierPlugin.showBossLocation.Value && (intelCenterLevel >= BossNotifierPlugin.intelCenterLocationUnlockLevel.Value);
 
             foreach (var bossSpawn in BossLocationSpawnPatch.bossesInRaid) {
