@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using BepInEx.Configuration;
 using Comfort.Common;
 using BepInEx.Logging;
+using Aki.Reflection.Utils;
 
 namespace BossNotifier {
     [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.3.2")]
@@ -216,6 +217,10 @@ namespace BossNotifier {
         private void SendBossNotifications() {
             if (intelCenterLevel < BossNotifierPlugin.intelCenterUnlockLevel.Value) return;
 
+            if (bossNotificationMessages.Count == 0) {
+                NotificationManagerClass.DisplayMessageNotification("No Bosses Located", ENotificationDurationType.Long);
+            }
+
             foreach (var bossMessage in bossNotificationMessages) {
                 NotificationManagerClass.DisplayMessageNotification(bossMessage, ENotificationDurationType.Long);
             }
@@ -225,7 +230,11 @@ namespace BossNotifier {
         public static void Init() {
             if (Singleton<IBotGame>.Instantiated) {
                 Instance = GClass5.GetOrAddComponent<BossNotifierMono>(Singleton<GameWorld>.Instance);
-                Instance.intelCenterLevel = Singleton<GameWorld>.Instance.MainPlayer.Profile.Hideout.Areas[11].level;
+                if (ClientAppUtils.GetMainApp().GetClientBackEndSession() == null) {
+                    Instance.intelCenterLevel = 0;
+                } else {
+                    Instance.intelCenterLevel = ClientAppUtils.GetMainApp().GetClientBackEndSession().Profile.Hideout.Areas[11].level;
+                }
             }
         }
 
@@ -248,8 +257,6 @@ namespace BossNotifier {
         }
 
         public void GenerateBossNotifications() {
-            BossNotifierPlugin.LogInfo("Generating... " + intelCenterLevel);
-
             // Clear out boss notification cache
             bossNotificationMessages = new List<string>();
 
