@@ -200,7 +200,7 @@ namespace BossNotifier {
 
         [PatchPrefix]
         public static void PatchPrefix() {
-            // If intel center level allows us to access notifications then start BossNotifierMono
+            // Start BossNotifierMono
             BossNotifierMono.Init();
         }
     }
@@ -217,6 +217,7 @@ namespace BossNotifier {
         private void SendBossNotifications() {
             if (intelCenterLevel < BossNotifierPlugin.intelCenterUnlockLevel.Value) return;
 
+            // If we have no notifications to display, send one saying there's no bosses located.
             if (bossNotificationMessages.Count == 0) {
                 NotificationManagerClass.DisplayMessageNotification("No Bosses Located", ENotificationDurationType.Long);
             }
