@@ -59,6 +59,7 @@ namespace BossNotifier {
             {"ZoneDormitory", "Dormitory" },
             {"ZoneGasStation", "Gas Station" },
             {"ZoneTankSquare", "Old Construction" },
+            {"ZoneWade", "RUAF Roadblock" },
             {"BotZone", "" },
             {"ZoneCenterBot", "Center" },
             {"ZoneCenter", "Center" },
@@ -86,6 +87,7 @@ namespace BossNotifier {
             {"ZoneMiniHouse", "Mini House" },
             {"ZoneBrokenVill", "Broken Village" },
             {"ZoneWoodCutter", "Wood Cutter" },
+            {"ZoneCard1", "Card 1" },
         };
 
         private void Awake() {
