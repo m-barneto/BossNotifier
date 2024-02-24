@@ -9,6 +9,7 @@ using BepInEx.Configuration;
 using Comfort.Common;
 using BepInEx.Logging;
 using Aki.Reflection.Utils;
+using System.Text;
 
 namespace BossNotifier {
     [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.3.2")]
@@ -132,8 +133,20 @@ namespace BossNotifier {
 
         // Get zone name by ID
         public static string GetZoneName(string zoneId) {
-            // Return zone name if found, otherwise null
-            return zoneNames.ContainsKey(zoneId) ? zoneNames[zoneId] : null;
+            // Return zone name if found, otherwise clean up the zoneId
+            if (zoneNames.ContainsKey(zoneId)) return zoneNames[zoneId];
+
+            string location = zoneId.Replace("Bot", "").Replace("Zone", "");
+            StringBuilder sb = new StringBuilder();
+
+            for (int i = 0; i < location.Length; i++) {
+                char c = location[i];
+                if (char.IsUpper(c) && i != 0 && i < location.Length - 1 && !char.IsUpper(location[i + 1]) && !char.IsDigit(location[i + 1])) {
+                    sb.Append(" ");
+                }
+                sb.Append(c);
+            }
+            return sb.ToString().Replace("_", " ").Trim();
         }
     }
 
