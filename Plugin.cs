@@ -44,6 +44,7 @@ namespace BossNotifier {
             { WildSpawnType.arenaFighterEvent, "Blood Hounds" },
             { WildSpawnType.crazyAssaultEvent, "Crazy Scavs" },
             { WildSpawnType.exUsec, "Rogues" },
+            { (WildSpawnType)4206927, "Punisher" }
         };
         // Set of plural boss names
         public static readonly HashSet<string> pluralBosses = new HashSet<string>() {
