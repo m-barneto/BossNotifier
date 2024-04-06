@@ -12,7 +12,7 @@ using Aki.Reflection.Utils;
 using System.Text;
 
 namespace BossNotifier {
-    [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.3.3")]
+    [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.3.4")]
     public class BossNotifierPlugin : BaseUnityPlugin {
         // Configuration entries
         public static ConfigEntry<KeyboardShortcut> showBossesKeyCode;
@@ -44,6 +44,8 @@ namespace BossNotifier {
             { WildSpawnType.arenaFighterEvent, "Blood Hounds" },
             { WildSpawnType.crazyAssaultEvent, "Crazy Scavs" },
             { WildSpawnType.exUsec, "Rogues" },
+            { WildSpawnType.bossKolontay, "Kolontay" },
+            { (WildSpawnType)4206927, "Punisher" },
         };
         // Set of plural boss names
         public static readonly HashSet<string> pluralBosses = new HashSet<string>() {
