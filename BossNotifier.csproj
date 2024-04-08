@@ -38,49 +38,28 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="aki-core">
-      <HintPath>..\..\..\Games\EFT-SPT 3.8.0 Dev\BepInEx\Plugins\spt\aki-core.dll</HintPath>
-    </Reference>
-    <Reference Include="aki-custom">
-      <HintPath>..\..\..\Games\EFT-SPT 3.8.0 Dev\BepInEx\Plugins\spt\aki-custom.dll</HintPath>
-    </Reference>
-    <Reference Include="aki-debugging">
-      <HintPath>..\..\..\Games\EFT-SPT 3.8.0 Dev\BepInEx\Plugins\spt\aki-debugging.dll</HintPath>
-    </Reference>
-    <Reference Include="aki-singleplayer">
-      <HintPath>..\..\..\Games\EFT-SPT 3.8.0 Dev\BepInEx\Plugins\spt\aki-singleplayer.dll</HintPath>
-    </Reference>
-    <Reference Include="Aki.Common, Version=3.7.2.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\Games\EFT-SPT 3.8.0 Dev\EscapeFromTarkov_Data\Managed\Aki.Common.dll</HintPath>
-    </Reference>
     <Reference Include="Aki.Reflection, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\Games\EFT-SPT 3.8.0 Dev\EscapeFromTarkov_Data\Managed\Aki.Reflection.dll</HintPath>
+      <HintPath>References\Aki.Reflection.dll</HintPath>
     </Reference>
     <Reference Include="Assembly-CSharp, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\Games\EFT-SPT 3.8.0 Dev\EscapeFromTarkov_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <HintPath>References\Assembly-CSharp.dll</HintPath>
     </Reference>
     <Reference Include="BepInEx, Version=5.4.22.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\Games\EFT-SPT 3.8.0 Dev\BepInEx\core\BepInEx.dll</HintPath>
+      <HintPath>References\BepInEx.dll</HintPath>
     </Reference>
     <Reference Include="Comfort, Version=1.0.0.4, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\Games\EFT-SPT 3.8.0 Dev\EscapeFromTarkov_Data\Managed\Comfort.dll</HintPath>
-    </Reference>
-    <Reference Include="ConfigurationManager">
-      <HintPath>..\..\..\Games\EFT-SPT 3.8.0 Dev\BepInEx\Plugins\spt\ConfigurationManager.dll</HintPath>
+      <HintPath>References\Comfort.dll</HintPath>
     </Reference>
     <Reference Include="System" />
-    <Reference Include="UnityEngine, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\Games\EFT-SPT 3.8.0 Dev\EscapeFromTarkov_Data\Managed\UnityEngine.dll</HintPath>
+    <Reference Include="UnityEngine">
+      <HintPath>References\UnityEngine.dll</HintPath>
     </Reference>
-    <Reference Include="UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\Games\EFT-SPT 3.8.0 Dev\EscapeFromTarkov_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>References\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

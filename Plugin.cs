@@ -12,7 +12,7 @@ using Aki.Reflection.Utils;
 using System.Text;
 
 namespace BossNotifier {
-    [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.3.4")]
+    [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.3.5")]
     public class BossNotifierPlugin : BaseUnityPlugin {
         // Configuration entries
         public static ConfigEntry<KeyboardShortcut> showBossesKeyCode;
@@ -23,9 +23,12 @@ namespace BossNotifier {
 
         private static ManualLogSource logger;
 
-        // Logging method
+        // Logging methods
         public static void LogInfo(string msg) {
             logger.LogInfo(msg);
+        }
+        public static void LogDebug(string msg) {
+            logger.LogDebug(msg);
         }
 
         // Dictionary mapping boss types to names
@@ -298,7 +301,7 @@ namespace BossNotifier {
                     // Location is unlocked and location isnt null
                     notificationMessage = $"{bossSpawn.Key} @ {bossSpawn.Value}";
                 }
-
+                BossNotifierPlugin.LogDebug(notificationMessage);
                 // Add notification to cache list
                 bossNotificationMessages.Add(notificationMessage);
             }
