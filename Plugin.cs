@@ -250,7 +250,7 @@ namespace BossNotifier {
         // Initializes boss notifier mono and attaches it to the game world object
         public static void Init() {
             if (Singleton<IBotGame>.Instantiated) {
-                Instance = GClass5.GetOrAddComponent<BossNotifierMono>(Singleton<GameWorld>.Instance);
+                Instance = Singleton<GameWorld>.Instance.GetOrAddComponent<BossNotifierMono>();
                 if (ClientAppUtils.GetMainApp().GetClientBackEndSession() == null) {
                     Instance.intelCenterLevel = 0;
                 } else {
