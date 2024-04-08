@@ -47,7 +47,7 @@ namespace BossNotifier {
             { WildSpawnType.arenaFighterEvent, "Blood Hounds" },
             { WildSpawnType.crazyAssaultEvent, "Crazy Scavs" },
             { WildSpawnType.exUsec, "Rogues" },
-            { WildSpawnType.bossKolontay, "Kolontay" },
+            { WildSpawnType.bossKolontay, "Kollontay" },
             { (WildSpawnType)4206927, "Punisher" },
         };
         // Set of plural boss names
