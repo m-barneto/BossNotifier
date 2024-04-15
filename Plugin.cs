@@ -103,8 +103,8 @@ namespace BossNotifier {
             intelCenterUnlockLevel = Config.Bind("Balance", "Intel Center Level Requirement", 0, "Level to unlock at.");
             showBossLocation = Config.Bind("Balance", "Show Boss Spawn Location", true, "Show boss locations in notification.");
             intelCenterLocationUnlockLevel = Config.Bind("Balance", "Intel Center Location Level Requirement", 0, "Unlocks showing boss spawn location.");
-            showBossDetected = Config.Bind("Live Updates", "Show Boss Detected Notification", true, "Show detected notification when bosses spawn during the raid.");
-            intelCenterDetectedUnlockLevel = Config.Bind("Live Updates", "Intel Center Detection Requirement", 0, "Unlocks showing boss detected notification.");
+            showBossDetected = Config.Bind("In-Raid Updates", "Show Boss Detected Notification", true, "Show detected notification when bosses spawn during the raid.");
+            intelCenterDetectedUnlockLevel = Config.Bind("In-Raid Updates", "Intel Center Detection Requirement", 0, "Unlocks showing boss detected notification.");
 
             // Enable patches
             new BossLocationSpawnPatch().Enable();
@@ -119,15 +119,6 @@ namespace BossNotifier {
         // Event handler for configuration changes
         private void Config_SettingChanged(object sender, SettingChangedEventArgs e) {
             ConfigEntryBase changedSetting = e.ChangedSetting;
-
-            // Clamp Intel Levels to valid values.
-            if (changedSetting.Definition.Key.Equals("Intel Center Level Requirement")) {
-                if (intelCenterUnlockLevel.Value < 0) intelCenterUnlockLevel.Value = 0;
-                else if (intelCenterUnlockLevel.Value > 3) intelCenterUnlockLevel.Value = 3;
-            } else if (changedSetting.Definition.Key.Equals("Intel Center Location Level Requirement")) {
-                if (intelCenterLocationUnlockLevel.Value < 0) intelCenterLocationUnlockLevel.Value = 0;
-                else if (intelCenterLocationUnlockLevel.Value > 3) intelCenterLocationUnlockLevel.Value = 3;
-            }
 
             // If player is in a raid, reset their notifications to reflect changes
             if (BossNotifierMono.Instance) BossNotifierMono.Instance.GenerateBossNotifications();
@@ -219,6 +210,9 @@ namespace BossNotifier {
     internal class BotBossPatch : ModulePatch {
         protected override MethodBase GetTargetMethod() => typeof(BotBoss).GetConstructors()[0];
 
+        // Bosses spawned in raid
+        public static HashSet<string> spawnedBosses = new HashSet<string>();
+
         [PatchPostfix]
         private static void PatchPostfix(BotBoss __instance) {
             WildSpawnType role = __instance.Owner.Profile.Info.Settings.Role;
@@ -231,6 +225,9 @@ namespace BossNotifier {
             string position = $"{(int)positionVector.x}, {(int)positionVector.y}, {(int)positionVector.z}";
             // {name} has spawned at (x, y, z) on {map}
             BossNotifierPlugin.Log(LogLevel.Debug, $"{name} has spawned at {position} on {Singleton<GameWorld>.Instance.LocationId}");
+
+            // Add boss to spawnedBosses
+            spawnedBosses.Add(name);
 
             NotificationManagerClass.DisplayMessageNotification($"{name} has been detected nearby.", ENotificationDurationType.Long);
         }
@@ -299,6 +296,8 @@ namespace BossNotifier {
         public void OnDestroy() {
             // Clear out boss locations for this raid
             BossLocationSpawnPatch.bossesInRaid.Clear();
+            // Clear out spawned bosses for this raid
+            BotBossPatch.spawnedBosses.Clear();
         }
 
         public void GenerateBossNotifications() {
