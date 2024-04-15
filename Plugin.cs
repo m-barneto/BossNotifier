@@ -110,6 +110,7 @@ namespace BossNotifier {
             // Enable patches
             new BossLocationSpawnPatch().Enable();
             new NewGamePatch().Enable();
+            new BotBossPatch().Enable();
 
             // Subscribe to config changes
             Config.SettingChanged += Config_SettingChanged;
@@ -230,7 +231,7 @@ namespace BossNotifier {
             // Add boss to spawnedBosses
             spawnedBosses.Add(name);
 
-            NotificationManagerClass.DisplayMessageNotification($"{name} has been detected nearby.", ENotificationDurationType.Long);
+            NotificationManagerClass.DisplayMessageNotification($"{name} {(BossNotifierPlugin.pluralBosses.Contains(name) ? "have" : "has")} been detected nearby.", ENotificationDurationType.Long);
             BossNotifierMono.Instance.GenerateBossNotifications();
         }
     }
@@ -326,7 +327,7 @@ namespace BossNotifier {
                 string notificationMessage;
                 // If we don't have locations or value is null/whitespace
                 if (!isLocationUnlocked || bossSpawn.Value == null || bossSpawn.Value.Equals("")) {
-                    // Then just show that they spawned and nothing else ✓ ✔
+                    // Then just show that they spawned and nothing else
                     notificationMessage = $"{bossSpawn.Key} {(BossNotifierPlugin.pluralBosses.Contains(bossSpawn.Key) ? "have" : "has")} spawned.{(isDetectionUnlocked && isDetected ? $" ✓" : "")}";
                 } else {
                     // Location is unlocked and location isnt null
