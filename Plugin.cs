@@ -230,6 +230,7 @@ namespace BossNotifier {
             spawnedBosses.Add(name);
 
             NotificationManagerClass.DisplayMessageNotification($"{name} has been detected nearby.", ENotificationDurationType.Long);
+            BossNotifierMono.Instance.GenerateBossNotifications();
         }
     }
 
@@ -311,18 +312,24 @@ namespace BossNotifier {
             // Get whether location is unlocked or not.
             bool isLocationUnlocked = BossNotifierPlugin.showBossLocation.Value && (intelCenterLevel >= BossNotifierPlugin.intelCenterLocationUnlockLevel.Value);
 
+            // Get whether detection is unlocked or not.
+            bool isDetectionUnlocked = BossNotifierPlugin.showBossDetected.Value && (intelCenterLevel >= BossNotifierPlugin.intelCenterDetectedUnlockLevel.Value);
+
             foreach (var bossSpawn in BossLocationSpawnPatch.bossesInRaid) {
                 // If it's daytime then cultists don't spawn
                 if (isDayTime && bossSpawn.Key.Equals("Cultists")) continue;
 
+                // If boss has been spawned/detected
+                bool isDetected = BotBossPatch.spawnedBosses.Contains(bossSpawn.Key);
+
                 string notificationMessage;
                 // If we don't have locations or value is null/whitespace
                 if (!isLocationUnlocked || bossSpawn.Value == null || bossSpawn.Value.Equals("")) {
-                    // Then just show that they spawned and nothing else
-                    notificationMessage = $"{bossSpawn.Key} {(BossNotifierPlugin.pluralBosses.Contains(bossSpawn.Key) ? "have" : "has")} spawned.";
+                    // Then just show that they spawned and nothing else ✓ ✔
+                    notificationMessage = $"{bossSpawn.Key} {(BossNotifierPlugin.pluralBosses.Contains(bossSpawn.Key) ? "have" : "has")} spawned.{(isDetectionUnlocked && isDetected ? $" ✓" : "")}";
                 } else {
                     // Location is unlocked and location isnt null
-                    notificationMessage = $"{bossSpawn.Key} @ {bossSpawn.Value}";
+                    notificationMessage = $"{bossSpawn.Key} @ {bossSpawn.Value}{(isDetectionUnlocked && isDetected ? $" ✓" : "")}";
                 }
                 BossNotifierPlugin.Log(LogLevel.Debug, notificationMessage);
                 // Add notification to cache list
