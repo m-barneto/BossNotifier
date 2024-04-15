@@ -49,6 +49,7 @@ namespace BossNotifier {
             { WildSpawnType.exUsec, "Rogues" },
             { WildSpawnType.bossKolontay, "Kollontay" },
             { (WildSpawnType)4206927, "Punisher" },
+            { (WildSpawnType)199, "Legion" },
         };
         // Set of plural boss names
         public static readonly HashSet<string> pluralBosses = new HashSet<string>() {
