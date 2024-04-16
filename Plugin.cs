@@ -12,7 +12,7 @@ using Aki.Reflection.Utils;
 using System.Text;
 
 namespace BossNotifier {
-    [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.4.0")]
+    [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.4.1")]
     public class BossNotifierPlugin : BaseUnityPlugin {
         // Configuration entries
         public static ConfigEntry<KeyboardShortcut> showBossesKeyCode;
@@ -205,6 +205,8 @@ namespace BossNotifier {
 
                 // Get the spawn location
                 string location = BossNotifierPlugin.GetZoneName(__instance.BornZone);
+
+                BossNotifierPlugin.Log(LogLevel.Debug, $"Boss {name} @ zone {__instance.BornZone} translated to {(location == null ? __instance.BornZone.Replace("Bot", "").Replace("Zone", ""): location)}");
 
                 if (location == null) {
                     // If it's null then use cleaned up BornZone
