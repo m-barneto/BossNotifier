@@ -243,8 +243,10 @@ namespace BossNotifier {
             // Add boss to spawnedBosses
             spawnedBosses.Add(name);
 
-            NotificationManagerClass.DisplayMessageNotification($"{name} {(BossNotifierPlugin.pluralBosses.Contains(name) ? "have" : "has")} been detected in your vicinity.", ENotificationDurationType.Long);
-            BossNotifierMono.Instance.GenerateBossNotifications();
+            if (BossNotifierMono.Instance.intelCenterLevel >= BossNotifierPlugin.intelCenterDetectedUnlockLevel.Value) {
+                NotificationManagerClass.DisplayMessageNotification($"{name} {(BossNotifierPlugin.pluralBosses.Contains(name) ? "have" : "has")} been detected in your vicinity.", ENotificationDurationType.Long);
+                BossNotifierMono.Instance.GenerateBossNotifications();
+            }
         }
     }
 
@@ -266,7 +268,7 @@ namespace BossNotifier {
         // Caching the notification messages
         private List<string> bossNotificationMessages;
         // Intel Center level, only updated when raid is entered.
-        private int intelCenterLevel;
+        public int intelCenterLevel;
 
         private void SendBossNotifications() {
             if (intelCenterLevel < BossNotifierPlugin.intelCenterUnlockLevel.Value) return;
