@@ -104,15 +104,15 @@ namespace BossNotifier {
             // showBossLocation = Config.Bind("Balance", "Show Boss Spawn Location", true, "Show boss locations in notification.");
             // showBossDetected = Config.Bind("In-Raid Updates", "Show Boss Detected Notification", true, "Show detected notification when bosses spawn during the raid.");
             // intelCenterUnlockLevel = Config.Bind("Balance", "Intel Center Level Requirement", 0, "Level to unlock at.");
-            intelCenterUnlockLevel = Config.Bind("Intel Center Unlocks (4 = Disabled)", "1. Intel Center Level Requirement", 0, 
+            intelCenterUnlockLevel = Config.Bind("Intel Center Unlocks (4 means Disabled)", "1. Intel Center Level Requirement", 0, 
                 new ConfigDescription("Level to unlock plain notifications at.",
                 new AcceptableValueRange<int>(0, 4)));
             // intelCenterLocationUnlockLevel = Config.Bind("Balance", "Intel Center Location Level Requirement", 0, "Unlocks showing boss spawn location.");
-            intelCenterLocationUnlockLevel = Config.Bind("Intel Center Unlocks (4 = Disabled)", "2. Intel Center Location Level Requirement", 0,
+            intelCenterLocationUnlockLevel = Config.Bind("Intel Center Unlocks (4 means Disabled)", "2. Intel Center Location Level Requirement", 0,
                 new ConfigDescription("Unlocks showing boss spawn location in notification.",
                 new AcceptableValueRange<int>(0, 4)));
             // intelCenterDetectedUnlockLevel = Config.Bind("Intel Center Unlocks", "Intel Center Detection Requirement", 0, "Unlocks showing boss detected notification.");
-            intelCenterDetectedUnlockLevel = Config.Bind("Intel Center Unlocks (4 = Disabled)", "3. Intel Center Detection Requirement", 0, 
+            intelCenterDetectedUnlockLevel = Config.Bind("Intel Center Unlocks (4 means Disabled)", "3. Intel Center Detection Requirement", 0, 
                 new ConfigDescription("Unlocks showing boss detected notification. (When you get near a boss)", 
                 new AcceptableValueRange<int>(0, 4)));
 
