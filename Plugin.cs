@@ -12,15 +12,15 @@ using Aki.Reflection.Utils;
 using System.Text;
 
 namespace BossNotifier {
-    [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.3.5")]
+    [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.4.0")]
     public class BossNotifierPlugin : BaseUnityPlugin {
         // Configuration entries
         public static ConfigEntry<KeyboardShortcut> showBossesKeyCode;
         public static ConfigEntry<bool> showNotificationsOnRaidStart;
         public static ConfigEntry<int> intelCenterUnlockLevel;
-        public static ConfigEntry<bool> showBossLocation;
+        // public static ConfigEntry<bool> showBossLocation;
         public static ConfigEntry<int> intelCenterLocationUnlockLevel;
-        public static ConfigEntry<bool> showBossDetected;
+        // public static ConfigEntry<bool> showBossDetected;
         public static ConfigEntry<int> intelCenterDetectedUnlockLevel;
 
         private static ManualLogSource logger;
@@ -99,13 +99,25 @@ namespace BossNotifier {
             logger = Logger;
 
             // Initialize configuration entries
-            showBossesKeyCode = Config.Bind("Boss Notifier", "Keyboard Shortcut", new KeyboardShortcut(KeyCode.O), "Key to show boss notifications.");
-            showNotificationsOnRaidStart = Config.Bind("Boss Notifier", "Show Bosses on Raid Start", true, "Show bosses on raid start.");
-            intelCenterUnlockLevel = Config.Bind("Balance", "Intel Center Level Requirement", 0, "Level to unlock at.");
-            showBossLocation = Config.Bind("Balance", "Show Boss Spawn Location", true, "Show boss locations in notification.");
-            intelCenterLocationUnlockLevel = Config.Bind("Balance", "Intel Center Location Level Requirement", 0, "Unlocks showing boss spawn location.");
-            showBossDetected = Config.Bind("In-Raid Updates", "Show Boss Detected Notification", true, "Show detected notification when bosses spawn during the raid.");
-            intelCenterDetectedUnlockLevel = Config.Bind("In-Raid Updates", "Intel Center Detection Requirement", 0, "Unlocks showing boss detected notification.");
+            showBossesKeyCode = Config.Bind("General", "Keyboard Shortcut", new KeyboardShortcut(KeyCode.O), "Key to show boss notifications.");
+            showNotificationsOnRaidStart = Config.Bind("General", "Show Bosses on Raid Start", true, "Show boss notifications on raid start.");
+            // showBossLocation = Config.Bind("Balance", "Show Boss Spawn Location", true, "Show boss locations in notification.");
+            // showBossDetected = Config.Bind("In-Raid Updates", "Show Boss Detected Notification", true, "Show detected notification when bosses spawn during the raid.");
+            // intelCenterUnlockLevel = Config.Bind("Balance", "Intel Center Level Requirement", 0, "Level to unlock at.");
+            intelCenterUnlockLevel = Config.Bind("Intel Center Unlocks (4 = Disabled)", "1. Intel Center Level Requirement", 0, 
+                new ConfigDescription("Level to unlock plain notifications at.",
+                new AcceptableValueRange<int>(0, 4)));
+            // intelCenterLocationUnlockLevel = Config.Bind("Balance", "Intel Center Location Level Requirement", 0, "Unlocks showing boss spawn location.");
+            intelCenterLocationUnlockLevel = Config.Bind("Intel Center Unlocks (4 = Disabled)", "2. Intel Center Location Level Requirement", 0,
+                new ConfigDescription("Unlocks showing boss spawn location in notification.",
+                new AcceptableValueRange<int>(0, 4)));
+            // intelCenterDetectedUnlockLevel = Config.Bind("Intel Center Unlocks", "Intel Center Detection Requirement", 0, "Unlocks showing boss detected notification.");
+            intelCenterDetectedUnlockLevel = Config.Bind("Intel Center Unlocks (4 = Disabled)", "3. Intel Center Detection Requirement", 0, 
+                new ConfigDescription("Unlocks showing boss detected notification. (When you get near a boss)", 
+                new AcceptableValueRange<int>(0, 4)));
+
+
+            // Config.Bind("Section", "Key", 1, new ConfigDescription("Description", new AcceptableValueRange<int>(0, 100)));
 
             // Enable patches
             new BossLocationSpawnPatch().Enable();
@@ -231,7 +243,7 @@ namespace BossNotifier {
             // Add boss to spawnedBosses
             spawnedBosses.Add(name);
 
-            NotificationManagerClass.DisplayMessageNotification($"{name} {(BossNotifierPlugin.pluralBosses.Contains(name) ? "have" : "has")} been detected nearby.", ENotificationDurationType.Long);
+            NotificationManagerClass.DisplayMessageNotification($"{name} {(BossNotifierPlugin.pluralBosses.Contains(name) ? "have" : "has")} been detected in your vicinity.", ENotificationDurationType.Long);
             BossNotifierMono.Instance.GenerateBossNotifications();
         }
     }
@@ -312,10 +324,10 @@ namespace BossNotifier {
             bool isDayTime = Singleton<IBotGame>.Instance.BotsController.ZonesLeaveController.IsDay();
 
             // Get whether location is unlocked or not.
-            bool isLocationUnlocked = BossNotifierPlugin.showBossLocation.Value && (intelCenterLevel >= BossNotifierPlugin.intelCenterLocationUnlockLevel.Value);
+            bool isLocationUnlocked = intelCenterLevel >= BossNotifierPlugin.intelCenterLocationUnlockLevel.Value;
 
             // Get whether detection is unlocked or not.
-            bool isDetectionUnlocked = BossNotifierPlugin.showBossDetected.Value && (intelCenterLevel >= BossNotifierPlugin.intelCenterDetectedUnlockLevel.Value);
+            bool isDetectionUnlocked = intelCenterLevel >= BossNotifierPlugin.intelCenterDetectedUnlockLevel.Value;
 
             foreach (var bossSpawn in BossLocationSpawnPatch.bossesInRaid) {
                 // If it's daytime then cultists don't spawn
@@ -328,10 +340,10 @@ namespace BossNotifier {
                 // If we don't have locations or value is null/whitespace
                 if (!isLocationUnlocked || bossSpawn.Value == null || bossSpawn.Value.Equals("")) {
                     // Then just show that they spawned and nothing else
-                    notificationMessage = $"{bossSpawn.Key} {(BossNotifierPlugin.pluralBosses.Contains(bossSpawn.Key) ? "have" : "has")} spawned.{(isDetectionUnlocked && isDetected ? $" ✓" : "")}";
+                    notificationMessage = $"{bossSpawn.Key} {(BossNotifierPlugin.pluralBosses.Contains(bossSpawn.Key) ? "have" : "has")} been located.{(isDetectionUnlocked && isDetected ? $" ✓" : "")}";
                 } else {
                     // Location is unlocked and location isnt null
-                    notificationMessage = $"{bossSpawn.Key} @ {bossSpawn.Value}{(isDetectionUnlocked && isDetected ? $" ✓" : "")}";
+                    notificationMessage = $"{bossSpawn.Key} {(BossNotifierPlugin.pluralBosses.Contains(bossSpawn.Key) ? "have" : "has")} been located near {bossSpawn.Value}{(isDetectionUnlocked && isDetected ? $" ✓" : "")}";
                 }
                 BossNotifierPlugin.Log(LogLevel.Debug, notificationMessage);
                 // Add notification to cache list
