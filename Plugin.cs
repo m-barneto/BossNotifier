@@ -207,7 +207,7 @@ namespace BossNotifier {
                 // Get the spawn location
                 string location = BossNotifierPlugin.GetZoneName(__instance.BornZone);
 
-                BossNotifierPlugin.Log(LogLevel.Debug, $"Boss {name} @ zone {__instance.BornZone} translated to {(location == null ? __instance.BornZone.Replace("Bot", "").Replace("Zone", ""): location)}");
+                BossNotifierPlugin.Log(LogLevel.Info, $"Boss {name} @ zone {__instance.BornZone} translated to {(location == null ? __instance.BornZone.Replace("Bot", "").Replace("Zone", ""): location)}");
 
                 if (location == null) {
                     // If it's null then use cleaned up BornZone
@@ -241,7 +241,7 @@ namespace BossNotifier {
             Vector3 positionVector = __instance.Player().Position;
             string position = $"{(int)positionVector.x}, {(int)positionVector.y}, {(int)positionVector.z}";
             // {name} has spawned at (x, y, z) on {map}
-            BossNotifierPlugin.Log(LogLevel.Debug, $"{name} has spawned at {position} on {Singleton<GameWorld>.Instance.LocationId}");
+            BossNotifierPlugin.Log(LogLevel.Info, $"{name} has spawned at {position} on {Singleton<GameWorld>.Instance.LocationId}");
 
             // Add boss to spawnedBosses
             spawnedBosses.Add(name);
@@ -292,7 +292,7 @@ namespace BossNotifier {
         public static void Init() {
             if (Singleton<GameWorld>.Instantiated) {
                 Instance = Singleton<GameWorld>.Instance.GetOrAddComponent<BossNotifierMono>();
-                BossNotifierPlugin.Log(LogLevel.Debug, $"Game started on map {Singleton<GameWorld>.Instance.LocationId}");
+                BossNotifierPlugin.Log(LogLevel.Info, $"Game started on map {Singleton<GameWorld>.Instance.LocationId}");
                 if (ClientAppUtils.GetMainApp().GetClientBackEndSession() == null) {
                     Instance.intelCenterLevel = 0;
                 } else {
@@ -351,7 +351,7 @@ namespace BossNotifier {
                     // Location is unlocked and location isnt null
                     notificationMessage = $"{bossSpawn.Key} {(BossNotifierPlugin.pluralBosses.Contains(bossSpawn.Key) ? "have" : "has")} been located near {bossSpawn.Value}{(isDetectionUnlocked && isDetected ? $" ✓" : "")}";
                 }
-                BossNotifierPlugin.Log(LogLevel.Debug, notificationMessage);
+                BossNotifierPlugin.Log(LogLevel.Info, notificationMessage);
                 // Add notification to cache list
                 bossNotificationMessages.Add(notificationMessage);
             }
