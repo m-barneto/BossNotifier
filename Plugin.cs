@@ -12,7 +12,7 @@ using Aki.Reflection.Utils;
 using System.Text;
 
 namespace BossNotifier {
-    [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.4.1")]
+    [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.4.2")]
     public class BossNotifierPlugin : BaseUnityPlugin {
         // Configuration entries
         public static ConfigEntry<KeyboardShortcut> showBossesKeyCode;
