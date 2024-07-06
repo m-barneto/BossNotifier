@@ -12,7 +12,7 @@ using BepInEx.Logging;
 using System.Text;
 
 namespace BossNotifier {
-    [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.5.2")]
+    [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.5.0")]
     public class BossNotifierPlugin : BaseUnityPlugin {
         // Configuration entries
         public static ConfigEntry<KeyboardShortcut> showBossesKeyCode;
