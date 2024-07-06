@@ -1,5 +1,6 @@
 ﻿using BepInEx;
-using Aki.Reflection.Patching;
+using SPT.Reflection.Patching;
+using SPT.Reflection.Utils;
 using System.Reflection;
 using UnityEngine;
 using EFT.Communications;
@@ -8,11 +9,10 @@ using System.Collections.Generic;
 using BepInEx.Configuration;
 using Comfort.Common;
 using BepInEx.Logging;
-using Aki.Reflection.Utils;
 using System.Text;
 
 namespace BossNotifier {
-    [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.4.2")]
+    [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.5.2")]
     public class BossNotifierPlugin : BaseUnityPlugin {
         // Configuration entries
         public static ConfigEntry<KeyboardShortcut> showBossesKeyCode;
@@ -97,6 +97,7 @@ namespace BossNotifier {
 
         private void Awake() {
             logger = Logger;
+            
 
             // Initialize configuration entries
             showBossesKeyCode = Config.Bind("General", "Keyboard Shortcut", new KeyboardShortcut(KeyCode.O), "Key to show boss notifications.");
@@ -246,6 +247,7 @@ namespace BossNotifier {
             spawnedBosses.Add(name);
 
             if (BossNotifierMono.Instance.intelCenterLevel >= BossNotifierPlugin.intelCenterDetectedUnlockLevel.Value) {
+
                 NotificationManagerClass.DisplayMessageNotification($"{name} {(BossNotifierPlugin.pluralBosses.Contains(name) ? "have" : "has")} been detected in your vicinity.", ENotificationDurationType.Long);
                 BossNotifierMono.Instance.GenerateBossNotifications();
             }
