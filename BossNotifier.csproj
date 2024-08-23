@@ -41,6 +41,9 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="0Harmony">
+      <HintPath>References\0Harmony.dll</HintPath>
+    </Reference>
     <Reference Include="Assembly-CSharp, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>References\Assembly-CSharp.dll</HintPath>
@@ -67,6 +70,10 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>mkdir $(TargetDir)BepInEx\plugins\
+copy /Y "$(TargerDir)$(TargetFileName)" "C:\Games\SPT 3.9.0 - Fika\BepInEx\plugins\$(TargetFileName)"
+copy /Y "$(TargerDir)$(TargetFileName)" "C:\Games\SPT 3.9.0 - Fika - Copy\BepInEx\plugins\$(TargetFileName)"
+copy /Y "$(TargerDir)$(TargetFileName)" "C:\Games\EFT-SPT 3.9.5\BepInEx\plugins\$(TargetFileName)"
+
 copy /Y "$(TargetDir)$(TargetFileName)" "$(TargetDir)BepInEx\plugins\$(TargetFileName)"
 powershell.exe -command Compress-Archive -Force -Path BepInEx $(TargetName).zip</PostBuildEvent>
   </PropertyGroup>
