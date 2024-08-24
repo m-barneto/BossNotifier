@@ -16,7 +16,7 @@ using System.Linq;
 using HarmonyLib;
 
 namespace BossNotifier {
-    [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.5.0")]
+    [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.5.1")]
     [BepInDependency("com.fika.core", BepInDependency.DependencyFlags.SoftDependency)]
     public class BossNotifierPlugin : BaseUnityPlugin {
         public static FieldInfo FikaIsPlayerHost;
