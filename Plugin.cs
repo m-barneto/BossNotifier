@@ -10,10 +10,18 @@ using BepInEx.Configuration;
 using Comfort.Common;
 using BepInEx.Logging;
 using System.Text;
+using BepInEx.Bootstrap;
+using System;
+using System.Linq;
+using HarmonyLib;
 
 namespace BossNotifier {
-    [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.5.0")]
+    [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.5.1")]
+    [BepInDependency("com.fika.core", BepInDependency.DependencyFlags.SoftDependency)]
     public class BossNotifierPlugin : BaseUnityPlugin {
+        public static FieldInfo FikaIsPlayerHost;
+
+
         // Configuration entries
         public static ConfigEntry<KeyboardShortcut> showBossesKeyCode;
         public static ConfigEntry<bool> showNotificationsOnRaidStart;
@@ -24,6 +32,7 @@ namespace BossNotifier {
         public static ConfigEntry<int> intelCenterDetectedUnlockLevel;
 
         private static ManualLogSource logger;
+
 
         // Logging methods
         public static void Log(LogLevel level, string msg) {
@@ -97,7 +106,11 @@ namespace BossNotifier {
 
         private void Awake() {
             logger = Logger;
-            
+
+            Type FikaUtilExternalType = Type.GetType("Fika.Core.Coop.Utils.FikaBackendUtils, Fika.Core", false);
+            if (FikaUtilExternalType != null) {
+                FikaIsPlayerHost = AccessTools.Field(FikaUtilExternalType, "MatchingType");
+            }
 
             // Initialize configuration entries
             showBossesKeyCode = Config.Bind("General", "Keyboard Shortcut", new KeyboardShortcut(KeyCode.O), "Key to show boss notifications.");
@@ -117,8 +130,6 @@ namespace BossNotifier {
                 new ConfigDescription("Unlocks showing boss detected notification. (When you get near a boss)", 
                 new AcceptableValueRange<int>(0, 4)));
 
-
-            // Config.Bind("Section", "Key", 1, new ConfigDescription("Description", new AcceptableValueRange<int>(0, 100)));
 
             // Enable patches
             new BossLocationSpawnPatch().Enable();
@@ -247,7 +258,6 @@ namespace BossNotifier {
             spawnedBosses.Add(name);
 
             if (BossNotifierMono.Instance.intelCenterLevel >= BossNotifierPlugin.intelCenterDetectedUnlockLevel.Value) {
-
                 NotificationManagerClass.DisplayMessageNotification($"{name} {(BossNotifierPlugin.pluralBosses.Contains(name) ? "have" : "has")} been detected in your vicinity.", ENotificationDurationType.Long);
                 BossNotifierMono.Instance.GenerateBossNotifications();
             }
@@ -275,6 +285,7 @@ namespace BossNotifier {
         public int intelCenterLevel;
 
         private void SendBossNotifications() {
+            if (!ShouldFunction()) return;
             if (intelCenterLevel < BossNotifierPlugin.intelCenterUnlockLevel.Value) return;
 
             // If we have no notifications to display, send one saying there's no bosses located.
@@ -319,6 +330,11 @@ namespace BossNotifier {
             BossLocationSpawnPatch.bossesInRaid.Clear();
             // Clear out spawned bosses for this raid
             BotBossPatch.spawnedBosses.Clear();
+        }
+
+        public bool ShouldFunction() {
+            if (BossNotifierPlugin.FikaIsPlayerHost == null) return true;
+            return (int)BossNotifierPlugin.FikaIsPlayerHost.GetValue(null) == 2;
         }
 
         public void GenerateBossNotifications() {
