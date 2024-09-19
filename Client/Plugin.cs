@@ -14,7 +14,6 @@ using BepInEx.Bootstrap;
 using System;
 using System.Linq;
 using HarmonyLib;
-using SPT.Common.Http;
 
 namespace BossNotifier {
     [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.5.1")]
