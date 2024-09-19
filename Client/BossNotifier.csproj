@@ -56,6 +56,9 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>References\Comfort.dll</HintPath>
     </Reference>
+    <Reference Include="spt-common">
+      <HintPath>References\spt-common.dll</HintPath>
+    </Reference>
     <Reference Include="spt-reflection">
       <HintPath>References\spt-reflection.dll</HintPath>
     </Reference>
