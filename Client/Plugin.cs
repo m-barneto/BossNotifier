@@ -14,6 +14,8 @@ using BepInEx.Bootstrap;
 using System;
 using System.Linq;
 using HarmonyLib;
+using SPT.Common.Http;
+using Newtonsoft.Json;
 
 namespace BossNotifier {
     [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.5.1")]
@@ -277,6 +279,9 @@ namespace BossNotifier {
 
     // Monobehavior for boss notifier
     class BossNotifierMono : MonoBehaviour {
+        class BossList {
+            public List<string> bosses;
+        }
         // Required to invalidate notification cache on settings changed event.
         public static BossNotifierMono Instance;
         // Caching the notification messages
@@ -287,6 +292,16 @@ namespace BossNotifier {
         private void SendBossNotifications() {
             if (!ShouldFunction()) return;
             if (intelCenterLevel < BossNotifierPlugin.intelCenterUnlockLevel.Value) return;
+
+            var req = RequestHandler.GetJson("/bosses/");
+            BossNotifierPlugin.Log(LogLevel.Info, "Hellloooooo");
+            var bosses = JsonConvert.DeserializeObject<BossList>(req);
+
+            BossNotifierPlugin.Log(LogLevel.Info, "RAAAAGGGGG");
+            BossNotifierPlugin.Log(LogLevel.Info, bosses.bosses.Count.ToString());
+            foreach (var boss in bosses.bosses) {
+                BossNotifierPlugin.Log(LogLevel.Info, boss);
+            }
 
             // If we have no notifications to display, send one saying there's no bosses located.
             if (bossNotificationMessages.Count == 0) {
