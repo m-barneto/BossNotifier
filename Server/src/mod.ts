@@ -14,7 +14,7 @@ class Mod implements IPreSptLoadMod {
     private fikaMatchService: FikaMatchService;
 
     //                        matchId        boss    location
-    private bossesInMatch: Map<string, Array<[string, string]>>;
+    private bossesInMatch: Map<string, Map<string, string>>;
 
     preSptLoad(container: DependencyContainer): void {
         const logger = container.resolve<ILogger>("WinstonLogger");
@@ -40,7 +40,6 @@ class Mod implements IPreSptLoadMod {
 
                         if (!this.matchHasBossList(matchId)) {
                             // idk tbh, return some empty list of bosses?
-                            
                         }
                         logger.info(url);
                         logger.info(info);
@@ -52,10 +51,12 @@ class Mod implements IPreSptLoadMod {
                 {
                     url: "/setbosses/",
                     action: async (url, info, sessionId, output) => {
-                        logger.info(url);
-                        logger.info(info);
-                        logger.info(sessionId);
-                        logger.info(JSON.stringify(output, null, 4));
+                        const bossList: Map<string, string> = new Map();
+                        Object.keys(info).forEach(key => {
+                            bossList.set(key, info[key]);
+                        });
+                        this.setBossListForMatch(sessionId, bossList);
+                        return JSON.stringify({response: "OK"});
                     }
                 }
             ],
@@ -67,15 +68,15 @@ class Mod implements IPreSptLoadMod {
         return this.bossesInMatch.has(matchId);
     }
 
-    setBossListForMatch(matchId: string, bossesInMatch: Array<[string, string]>): void {
+    setBossListForMatch(matchId: string, bossesInMatch: Map<string, string>): void {
         this.bossesInMatch[matchId] = bossesInMatch;
     }
 
-    getBossesInMatch(matchId: string): Array<[string, string]> | undefined {
+    getBossesInMatch(matchId: string): Map<string, string> | undefined {
         if (!this.matchHasBossList(matchId)) {
             return undefined;
         }
-
+        
         return this.bossesInMatch[matchId];
     }
 }
