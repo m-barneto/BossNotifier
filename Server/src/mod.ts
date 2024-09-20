@@ -11,7 +11,11 @@ import { FikaMatchService } from "./FikaMatchService";
 @injectable()
 class Mod implements IPreSptLoadMod {
     private config;
-    private fikaMatchService;
+    private fikaMatchService: FikaMatchService;
+
+    //                        matchId        boss    location
+    private bossesInMatch: Map<string, Array<[string, string]>>;
+
     preSptLoad(container: DependencyContainer): void {
         const logger = container.resolve<ILogger>("WinstonLogger");
         const vfs = container.resolve<VFS>("VFS");
@@ -31,6 +35,13 @@ class Mod implements IPreSptLoadMod {
                 {
                     url: "/getbosses/",
                     action: async (url, info, sessionId, output) => {
+                        
+                        const matchId = this.fikaMatchService.getMatchIdByProfile(sessionId);
+
+                        if (!this.matchHasBossList(matchId)) {
+                            // idk tbh, return some empty list of bosses?
+                            
+                        }
                         logger.info(url);
                         logger.info(info);
                         logger.info(sessionId);
@@ -50,6 +61,22 @@ class Mod implements IPreSptLoadMod {
             ],
             "bossnotifier"
         );
+    }
+
+    matchHasBossList(matchId: string): boolean {
+        return this.bossesInMatch.has(matchId);
+    }
+
+    setBossListForMatch(matchId: string, bossesInMatch: Array<[string, string]>): void {
+        this.bossesInMatch[matchId] = bossesInMatch;
+    }
+
+    getBossesInMatch(matchId: string): Array<[string, string]> | undefined {
+        if (!this.matchHasBossList(matchId)) {
+            return undefined;
+        }
+
+        return this.bossesInMatch[matchId];
     }
 }
 
