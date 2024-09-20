@@ -6,6 +6,7 @@ import { VFS } from "@spt/utils/VFS";
 import path from "path";
 import { PreSptModLoader } from "@spt/loaders/PreSptModLoader";
 import { StaticRouterModService } from "@spt/services/mod/staticRouter/StaticRouterModService";
+import { FikaMatchService } from "./FikaMatchService";
 
 @injectable()
 class Mod implements IPreSptLoadMod {
@@ -18,7 +19,9 @@ class Mod implements IPreSptLoadMod {
         
         const modImporter = container.resolve<PreSptModLoader>("PreSptModLoader");
         const hasFika = modImporter.getImportedModsNames().includes("fika-server");
-        //if (!hasFika) return;
+        if (hasFika) {
+            this.fikaMatchService = container.resolve<FikaMatchService>("FikaMatchService");
+        }
 
         const staticRouterModService = container.resolve<StaticRouterModService>("StaticRouterModService");
 
@@ -26,18 +29,27 @@ class Mod implements IPreSptLoadMod {
             "BossNotifierRouter",
             [
                 {
-                    url: "/bosses/",
+                    url: "/getbosses/",
                     action: async (url, info, sessionId, output) => {
                         logger.info(url);
                         logger.info(info);
                         logger.info(sessionId);
-                        logger.info(output);
+                        logger.info(JSON.stringify(output, null, 4));
                         return JSON.stringify({ bosses: [ "urmom", "cthulu", "jeff" ]});
+                    }
+                },
+                {
+                    url: "/setbosses/",
+                    action: async (url, info, sessionId, output) => {
+                        logger.info(url);
+                        logger.info(info);
+                        logger.info(sessionId);
+                        logger.info(JSON.stringify(output, null, 4));
                     }
                 }
             ],
             "bossnotifier"
-        )
+        );
     }
 }
 

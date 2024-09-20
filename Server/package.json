@@ -5,7 +5,9 @@
     "author": "Mattdokn",
     "license": "MIT",
     "loadBefore": [],
-    "loadAfter": [ "server" ],
+    "loadAfter": [
+        "server"
+    ],
     "incompatibilities": [],
     "isBundleMod": false,
     "main": "src/mod.js",
