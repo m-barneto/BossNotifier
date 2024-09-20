@@ -386,6 +386,11 @@ namespace BossNotifier {
                 // Add notification to cache list
                 bossNotificationMessages.Add(notificationMessage);
             }
+
+            // Send out the boss list to the server (if we're using fika and the host!)
+            if (ShouldFunction()) {
+                RequestHandler.PostJsonAsync("/setbosses/", JsonConvert.SerializeObject(BossLocationSpawnPatch.bossesInRaid));
+            }
         }
 
         // Credit to DrakiaXYZ, thank you!
