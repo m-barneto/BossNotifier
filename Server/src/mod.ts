@@ -11,13 +11,14 @@ import { FikaMatchService } from "./FikaMatchService";
 @injectable()
 class Mod implements IPreSptLoadMod {
     private config;
+    private logger: ILogger;
     private fikaMatchService: FikaMatchService;
 
     //                        matchId        boss    location
-    private bossesInMatch: Map<string, Map<string, string>>;
+    private bossesInMatch: Map<string, Record<string, string>> = new Map();
 
     preSptLoad(container: DependencyContainer): void {
-        const logger = container.resolve<ILogger>("WinstonLogger");
+        this.logger = container.resolve<ILogger>("WinstonLogger");
         const vfs = container.resolve<VFS>("VFS");
         this.config = jsonc.parse(vfs.readFile(path.resolve(__dirname, "../config/config.jsonc")));
         
@@ -37,25 +38,29 @@ class Mod implements IPreSptLoadMod {
                     action: async (url, info, sessionId, output) => {
                         
                         const matchId = this.fikaMatchService.getMatchIdByProfile(sessionId);
-
+                        this.logger.info("Match id found for this duded was " + matchId);
+                        this.logger.info(`Undefined? ${matchId === undefined}`);
+                        this.printMatches();
                         if (!this.matchHasBossList(matchId)) {
                             // idk tbh, return some empty list of bosses?
+                            this.logger.info("No match found for this dude, kill him!");
+                            return JSON.stringify({ bosses: {}});
                         }
-                        logger.info(url);
-                        logger.info(info);
-                        logger.info(sessionId);
-                        logger.info(JSON.stringify(output, null, 4));
-                        return JSON.stringify({ bosses: [ "urmom", "cthulu", "jeff" ]});
+
+                        const bossList = this.getBossesInMatch(matchId);
+
+                        return JSON.stringify({ bosses: bossList});
                     }
                 },
                 {
                     url: "/setbosses/",
                     action: async (url, info, sessionId, output) => {
-                        const bossList: Map<string, string> = new Map();
+                        const bossList: Record<string, string> = {};
                         Object.keys(info).forEach(key => {
-                            bossList.set(key, info[key]);
+                            bossList[key] = info[key];
                         });
                         this.setBossListForMatch(sessionId, bossList);
+                        this.printMatches();
                         return JSON.stringify({response: "OK"});
                     }
                 }
@@ -64,19 +69,26 @@ class Mod implements IPreSptLoadMod {
         );
     }
 
-    matchHasBossList(matchId: string): boolean {
-        return this.bossesInMatch.has(matchId);
+    printMatches(): void {
+        for (const matchId in this.bossesInMatch) {
+            this.logger.info(matchId);
+            this.logger.info(this.bossesInMatch[matchId]);
+        }
     }
 
-    setBossListForMatch(matchId: string, bossesInMatch: Map<string, string>): void {
+    matchHasBossList(matchId: string): boolean {
+        return this.bossesInMatch[matchId] !== undefined;
+    }
+
+    setBossListForMatch(matchId: string, bossesInMatch: Record<string, string>): void {
         this.bossesInMatch[matchId] = bossesInMatch;
     }
 
-    getBossesInMatch(matchId: string): Map<string, string> | undefined {
+    getBossesInMatch(matchId: string): Record<string, string> | undefined {
         if (!this.matchHasBossList(matchId)) {
             return undefined;
         }
-        
+
         return this.bossesInMatch[matchId];
     }
 }

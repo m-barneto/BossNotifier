@@ -280,7 +280,7 @@ namespace BossNotifier {
     // Monobehavior for boss notifier
     class BossNotifierMono : MonoBehaviour {
         class BossList {
-            public List<string> bosses;
+            public Dictionary<string, string> bosses;
         }
         // Required to invalidate notification cache on settings changed event.
         public static BossNotifierMono Instance;
@@ -290,18 +290,8 @@ namespace BossNotifier {
         public int intelCenterLevel;
 
         private void SendBossNotifications() {
-            if (!ShouldFunction()) return;
+            // this should be removed as we're gonna get the data from server now if its a client
             if (intelCenterLevel < BossNotifierPlugin.intelCenterUnlockLevel.Value) return;
-
-            var req = RequestHandler.GetJson("/bosses/");
-            BossNotifierPlugin.Log(LogLevel.Info, "Hellloooooo");
-            var bosses = JsonConvert.DeserializeObject<BossList>(req);
-
-            BossNotifierPlugin.Log(LogLevel.Info, "RAAAAGGGGG");
-            BossNotifierPlugin.Log(LogLevel.Info, bosses.bosses.Count.ToString());
-            foreach (var boss in bosses.bosses) {
-                BossNotifierPlugin.Log(LogLevel.Info, boss);
-            }
 
             // If we have no notifications to display, send one saying there's no bosses located.
             if (bossNotificationMessages.Count == 0) {
@@ -331,7 +321,7 @@ namespace BossNotifier {
             GenerateBossNotifications();
 
             if (!BossNotifierPlugin.showNotificationsOnRaidStart.Value) return;
-            Invoke("SendBossNotifications", 2f);
+            Invoke("SendBossNotifications", ShouldFunction() ? 2f : 3f);
         }
 
         public void Update() {
@@ -352,45 +342,60 @@ namespace BossNotifier {
             return (int)BossNotifierPlugin.FikaIsPlayerHost.GetValue(null) == 2;
         }
 
-        public void GenerateBossNotifications() {
-            // Clear out boss notification cache
-            bossNotificationMessages = new List<string>();
+        public void UpdateBossListFromServer() {
+            string req = RequestHandler.GetJson("/getbosses/");
+            var bosses = JsonConvert.DeserializeObject<BossList>(req);
 
-            // Check if it's daytime to prevent showing Cultist notif.
-            // This is the same method that DayTimeCultists patches so if that mod is installed then this always returns false
-            bool isDayTime = Singleton<IBotGame>.Instance.BotsController.ZonesLeaveController.IsDay();
-
-            // Get whether location is unlocked or not.
-            bool isLocationUnlocked = intelCenterLevel >= BossNotifierPlugin.intelCenterLocationUnlockLevel.Value;
-
-            // Get whether detection is unlocked or not.
-            bool isDetectionUnlocked = intelCenterLevel >= BossNotifierPlugin.intelCenterDetectedUnlockLevel.Value;
-
-            foreach (var bossSpawn in BossLocationSpawnPatch.bossesInRaid) {
-                // If it's daytime then cultists don't spawn
-                if (isDayTime && bossSpawn.Key.Equals("Cultists")) continue;
-
-                // If boss has been spawned/detected
-                bool isDetected = BotBossPatch.spawnedBosses.Contains(bossSpawn.Key);
-
-                string notificationMessage;
-                // If we don't have locations or value is null/whitespace
-                if (!isLocationUnlocked || bossSpawn.Value == null || bossSpawn.Value.Equals("")) {
-                    // Then just show that they spawned and nothing else
-                    notificationMessage = $"{bossSpawn.Key} {(BossNotifierPlugin.pluralBosses.Contains(bossSpawn.Key) ? "have" : "has")} been located.{(isDetectionUnlocked && isDetected ? $" ✓" : "")}";
-                } else {
-                    // Location is unlocked and location isnt null
-                    notificationMessage = $"{bossSpawn.Key} {(BossNotifierPlugin.pluralBosses.Contains(bossSpawn.Key) ? "have" : "has")} been located near {bossSpawn.Value}{(isDetectionUnlocked && isDetected ? $" ✓" : "")}";
-                }
-                BossNotifierPlugin.Log(LogLevel.Info, notificationMessage);
-                // Add notification to cache list
-                bossNotificationMessages.Add(notificationMessage);
+            BossLocationSpawnPatch.bossesInRaid.Clear();
+            foreach (var boss in bosses.bosses) {
+                BossNotifierPlugin.Log(LogLevel.Info, boss.Key + " " + boss.Value);
+                BossLocationSpawnPatch.bossesInRaid.Add(boss.Key, boss.Value);
             }
+        }
 
-            // Send out the boss list to the server (if we're using fika and the host!)
-            if (ShouldFunction()) {
+        public void GenerateBossNotifications() {
+            if (!ShouldFunction()) {
+                // we're a client, grab the bosslist from the server
+                UpdateBossListFromServer();
+            } else {
+                // Clear out boss notification cache
+                bossNotificationMessages = new List<string>();
+
+                // Check if it's daytime to prevent showing Cultist notif.
+                // This is the same method that DayTimeCultists patches so if that mod is installed then this always returns false
+                bool isDayTime = Singleton<IBotGame>.Instance.BotsController.ZonesLeaveController.IsDay();
+
+                // Get whether location is unlocked or not.
+                bool isLocationUnlocked = intelCenterLevel >= BossNotifierPlugin.intelCenterLocationUnlockLevel.Value;
+
+                // Get whether detection is unlocked or not.
+                bool isDetectionUnlocked = intelCenterLevel >= BossNotifierPlugin.intelCenterDetectedUnlockLevel.Value;
+
+                foreach (var bossSpawn in BossLocationSpawnPatch.bossesInRaid) {
+                    // If it's daytime then cultists don't spawn
+                    if (isDayTime && bossSpawn.Key.Equals("Cultists")) continue;
+
+                    // If boss has been spawned/detected
+                    bool isDetected = BotBossPatch.spawnedBosses.Contains(bossSpawn.Key);
+
+                    string notificationMessage;
+                    // If we don't have locations or value is null/whitespace
+                    if (!isLocationUnlocked || bossSpawn.Value == null || bossSpawn.Value.Equals("")) {
+                        // Then just show that they spawned and nothing else
+                        notificationMessage = $"{bossSpawn.Key} {(BossNotifierPlugin.pluralBosses.Contains(bossSpawn.Key) ? "have" : "has")} been located.{(isDetectionUnlocked && isDetected ? $" ✓" : "")}";
+                    } else {
+                        // Location is unlocked and location isnt null
+                        notificationMessage = $"{bossSpawn.Key} {(BossNotifierPlugin.pluralBosses.Contains(bossSpawn.Key) ? "have" : "has")} been located near {bossSpawn.Value}{(isDetectionUnlocked && isDetected ? $" ✓" : "")}";
+                    }
+                    BossNotifierPlugin.Log(LogLevel.Info, notificationMessage);
+                    // Add notification to cache list
+                    bossNotificationMessages.Add(notificationMessage);
+                }
+
+                // Send out the boss list to the server (if we're using fika and the host!)
                 RequestHandler.PostJsonAsync("/setbosses/", JsonConvert.SerializeObject(BossLocationSpawnPatch.bossesInRaid));
             }
+
         }
 
         // Credit to DrakiaXYZ, thank you!
