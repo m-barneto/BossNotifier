@@ -220,7 +220,7 @@ namespace BossNotifier {
                 // Get the spawn location
                 string location = BossNotifierPlugin.GetZoneName(__instance.BornZone);
 
-                BossNotifierPlugin.Log(LogLevel.Info, $"Boss {name} @ zone {__instance.BornZone} translated to {(location == null ? __instance.BornZone.Replace("Bot", "").Replace("Zone", ""): location)}");
+                BossNotifierPlugin.Log(LogLevel.Debug, $"Boss {name} @ zone {__instance.BornZone} translated to {(location == null ? __instance.BornZone.Replace("Bot", "").Replace("Zone", ""): location)}");
 
                 if (location == null) {
                     // If it's null then use cleaned up BornZone
@@ -307,7 +307,6 @@ namespace BossNotifier {
         // Initializes boss notifier mono and attaches it to the game world object
         public static void Init() {
             BotBossPatch.spawnedBosses.Clear();
-            //BossLocationSpawnPatch.bossesInRaid.Clear();
             if (Singleton<GameWorld>.Instantiated) {
                 Instance = Singleton<GameWorld>.Instance.GetOrAddComponent<BossNotifierMono>();
                 BossNotifierPlugin.Log(LogLevel.Info, $"Game started on map {Singleton<GameWorld>.Instance.LocationId}");
@@ -322,9 +321,6 @@ namespace BossNotifier {
         public void Start() {
             if (IsHost()) {
                 // Send out the boss list to the server (if we're using fika and the host!)
-                foreach (var boss in BossLocationSpawnPatch.bossesInRaid) {
-                    BossNotifierPlugin.Log(LogLevel.Info, $"{boss.Key} @ {boss.Value}");
-                }
                 RequestHandler.PostJsonAsync("/setbosses/", JsonConvert.SerializeObject(BossLocationSpawnPatch.bossesInRaid));
                 // Generate notifications
                 GenerateBossNotifications();
@@ -362,10 +358,8 @@ namespace BossNotifier {
 
         public bool IsHost() {
             if (BossNotifierPlugin.FikaIsPlayerHost == null) {
-                BossNotifierPlugin.Log(LogLevel.Info, "FikaIsPlayerHost was null!");
                 return true;
             }
-            BossNotifierPlugin.Log(LogLevel.Info, $"FikaIsPlayerHost wasnt null {(int)BossNotifierPlugin.FikaIsPlayerHost.GetValue(null)}!");
             return (int)BossNotifierPlugin.FikaIsPlayerHost.GetValue(null) == 2;
         }
 
@@ -374,7 +368,6 @@ namespace BossNotifier {
             var bosses = JsonConvert.DeserializeObject<BossList>(req);
 
             foreach (var boss in bosses.bosses) {
-                BossNotifierPlugin.Log(LogLevel.Info, boss.Key + " " + boss.Value);
                 BossLocationSpawnPatch.bossesInRaid.Add(boss.Key, boss.Value);
             }
         }
@@ -383,10 +376,6 @@ namespace BossNotifier {
             if (!IsHost()) {
                 // we're a client, grab the bosslist from the server
                 UpdateBossListFromServer();
-            }
-
-            foreach (var boss in BossLocationSpawnPatch.bossesInRaid) {
-                BossNotifierPlugin.Log(LogLevel.Info, $"{boss.Key} @ ${boss.Value}");
             }
 
             // Clear out boss notification cache
@@ -418,7 +407,6 @@ namespace BossNotifier {
                     // Location is unlocked and location isnt null
                     notificationMessage = $"{bossSpawn.Key} {(BossNotifierPlugin.pluralBosses.Contains(bossSpawn.Key) ? "have" : "has")} been located near {bossSpawn.Value}{(isDetectionUnlocked && isDetected ? $" ✓" : "")}";
                 }
-                BossNotifierPlugin.Log(LogLevel.Info, notificationMessage);
                 // Add notification to cache list
                 bossNotificationMessages.Add(notificationMessage);
             }
