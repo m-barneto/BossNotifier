@@ -306,6 +306,8 @@ namespace BossNotifier {
 
         // Initializes boss notifier mono and attaches it to the game world object
         public static void Init() {
+            BotBossPatch.spawnedBosses.Clear();
+            //BossLocationSpawnPatch.bossesInRaid.Clear();
             if (Singleton<GameWorld>.Instantiated) {
                 Instance = Singleton<GameWorld>.Instance.GetOrAddComponent<BossNotifierMono>();
                 BossNotifierPlugin.Log(LogLevel.Info, $"Game started on map {Singleton<GameWorld>.Instance.LocationId}");
@@ -318,10 +320,31 @@ namespace BossNotifier {
         }
 
         public void Start() {
+            if (IsHost()) {
+                // Send out the boss list to the server (if we're using fika and the host!)
+                foreach (var boss in BossLocationSpawnPatch.bossesInRaid) {
+                    BossNotifierPlugin.Log(LogLevel.Info, $"{boss.Key} @ {boss.Value}");
+                }
+                RequestHandler.PostJsonAsync("/setbosses/", JsonConvert.SerializeObject(BossLocationSpawnPatch.bossesInRaid));
+                // Generate notifications
+                GenerateBossNotifications();
+
+                if (!BossNotifierPlugin.showNotificationsOnRaidStart.Value) return;
+                Invoke("SendBossNotifications", 2f);
+            } else {
+                // We're the client, wait 2 seconds THEN generate boss notifications and invoke sendbossnotifications
+                Invoke("FikaClientSpecificInit", 2f);
+            }
+
+
+        }
+
+        public void FikaClientSpecificInit() {
+            // Generate notifications
             GenerateBossNotifications();
 
             if (!BossNotifierPlugin.showNotificationsOnRaidStart.Value) return;
-            Invoke("SendBossNotifications", ShouldFunction() ? 2f : 3f);
+            SendBossNotifications();
         }
 
         public void Update() {
@@ -337,8 +360,12 @@ namespace BossNotifier {
             BotBossPatch.spawnedBosses.Clear();
         }
 
-        public bool ShouldFunction() {
-            if (BossNotifierPlugin.FikaIsPlayerHost == null) return true;
+        public bool IsHost() {
+            if (BossNotifierPlugin.FikaIsPlayerHost == null) {
+                BossNotifierPlugin.Log(LogLevel.Info, "FikaIsPlayerHost was null!");
+                return true;
+            }
+            BossNotifierPlugin.Log(LogLevel.Info, $"FikaIsPlayerHost wasnt null {(int)BossNotifierPlugin.FikaIsPlayerHost.GetValue(null)}!");
             return (int)BossNotifierPlugin.FikaIsPlayerHost.GetValue(null) == 2;
         }
 
@@ -346,7 +373,6 @@ namespace BossNotifier {
             string req = RequestHandler.GetJson("/getbosses/");
             var bosses = JsonConvert.DeserializeObject<BossList>(req);
 
-            BossLocationSpawnPatch.bossesInRaid.Clear();
             foreach (var boss in bosses.bosses) {
                 BossNotifierPlugin.Log(LogLevel.Info, boss.Key + " " + boss.Value);
                 BossLocationSpawnPatch.bossesInRaid.Add(boss.Key, boss.Value);
@@ -354,46 +380,47 @@ namespace BossNotifier {
         }
 
         public void GenerateBossNotifications() {
-            if (!ShouldFunction()) {
+            if (!IsHost()) {
                 // we're a client, grab the bosslist from the server
                 UpdateBossListFromServer();
-            } else {
-                // Clear out boss notification cache
-                bossNotificationMessages = new List<string>();
+            }
 
-                // Check if it's daytime to prevent showing Cultist notif.
-                // This is the same method that DayTimeCultists patches so if that mod is installed then this always returns false
-                bool isDayTime = Singleton<IBotGame>.Instance.BotsController.ZonesLeaveController.IsDay();
+            foreach (var boss in BossLocationSpawnPatch.bossesInRaid) {
+                BossNotifierPlugin.Log(LogLevel.Info, $"{boss.Key} @ ${boss.Value}");
+            }
 
-                // Get whether location is unlocked or not.
-                bool isLocationUnlocked = intelCenterLevel >= BossNotifierPlugin.intelCenterLocationUnlockLevel.Value;
+            // Clear out boss notification cache
+            bossNotificationMessages = new List<string>();
 
-                // Get whether detection is unlocked or not.
-                bool isDetectionUnlocked = intelCenterLevel >= BossNotifierPlugin.intelCenterDetectedUnlockLevel.Value;
+            // Check if it's daytime to prevent showing Cultist notif.
+            // This is the same method that DayTimeCultists patches so if that mod is installed then this always returns false
+            bool isDayTime = Singleton<IBotGame>.Instance.BotsController.ZonesLeaveController.IsDay();
 
-                foreach (var bossSpawn in BossLocationSpawnPatch.bossesInRaid) {
-                    // If it's daytime then cultists don't spawn
-                    if (isDayTime && bossSpawn.Key.Equals("Cultists")) continue;
+            // Get whether location is unlocked or not.
+            bool isLocationUnlocked = intelCenterLevel >= BossNotifierPlugin.intelCenterLocationUnlockLevel.Value;
 
-                    // If boss has been spawned/detected
-                    bool isDetected = BotBossPatch.spawnedBosses.Contains(bossSpawn.Key);
+            // Get whether detection is unlocked or not.
+            bool isDetectionUnlocked = intelCenterLevel >= BossNotifierPlugin.intelCenterDetectedUnlockLevel.Value;
 
-                    string notificationMessage;
-                    // If we don't have locations or value is null/whitespace
-                    if (!isLocationUnlocked || bossSpawn.Value == null || bossSpawn.Value.Equals("")) {
-                        // Then just show that they spawned and nothing else
-                        notificationMessage = $"{bossSpawn.Key} {(BossNotifierPlugin.pluralBosses.Contains(bossSpawn.Key) ? "have" : "has")} been located.{(isDetectionUnlocked && isDetected ? $" ✓" : "")}";
-                    } else {
-                        // Location is unlocked and location isnt null
-                        notificationMessage = $"{bossSpawn.Key} {(BossNotifierPlugin.pluralBosses.Contains(bossSpawn.Key) ? "have" : "has")} been located near {bossSpawn.Value}{(isDetectionUnlocked && isDetected ? $" ✓" : "")}";
-                    }
-                    BossNotifierPlugin.Log(LogLevel.Info, notificationMessage);
-                    // Add notification to cache list
-                    bossNotificationMessages.Add(notificationMessage);
+            foreach (var bossSpawn in BossLocationSpawnPatch.bossesInRaid) {
+                // If it's daytime then cultists don't spawn
+                if (isDayTime && bossSpawn.Key.Equals("Cultists")) continue;
+
+                // If boss has been spawned/detected
+                bool isDetected = BotBossPatch.spawnedBosses.Contains(bossSpawn.Key);
+
+                string notificationMessage;
+                // If we don't have locations or value is null/whitespace
+                if (!isLocationUnlocked || bossSpawn.Value == null || bossSpawn.Value.Equals("")) {
+                    // Then just show that they spawned and nothing else
+                    notificationMessage = $"{bossSpawn.Key} {(BossNotifierPlugin.pluralBosses.Contains(bossSpawn.Key) ? "have" : "has")} been located.{(isDetectionUnlocked && isDetected ? $" ✓" : "")}";
+                } else {
+                    // Location is unlocked and location isnt null
+                    notificationMessage = $"{bossSpawn.Key} {(BossNotifierPlugin.pluralBosses.Contains(bossSpawn.Key) ? "have" : "has")} been located near {bossSpawn.Value}{(isDetectionUnlocked && isDetected ? $" ✓" : "")}";
                 }
-
-                // Send out the boss list to the server (if we're using fika and the host!)
-                RequestHandler.PostJsonAsync("/setbosses/", JsonConvert.SerializeObject(BossLocationSpawnPatch.bossesInRaid));
+                BossNotifierPlugin.Log(LogLevel.Info, notificationMessage);
+                // Add notification to cache list
+                bossNotificationMessages.Add(notificationMessage);
             }
 
         }

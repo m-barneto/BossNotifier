@@ -36,11 +36,7 @@ class Mod implements IPreSptLoadMod {
                 {
                     url: "/getbosses/",
                     action: async (url, info, sessionId, output) => {
-                        
                         const matchId = this.fikaMatchService.getMatchIdByProfile(sessionId);
-                        this.logger.info("Match id found for this duded was " + matchId);
-                        this.logger.info(`Undefined? ${matchId === undefined}`);
-                        this.printMatches();
                         if (!this.matchHasBossList(matchId)) {
                             // idk tbh, return some empty list of bosses?
                             this.logger.info("No match found for this dude, kill him!");
@@ -48,6 +44,7 @@ class Mod implements IPreSptLoadMod {
                         }
 
                         const bossList = this.getBossesInMatch(matchId);
+                        this.logger.success(`Sending boss list to client! ${JSON.stringify({ bosses: bossList})}`)
 
                         return JSON.stringify({ bosses: bossList});
                     }
@@ -59,8 +56,9 @@ class Mod implements IPreSptLoadMod {
                         Object.keys(info).forEach(key => {
                             bossList[key] = info[key];
                         });
+                        this.logger.info(JSON.stringify(bossList));
                         this.setBossListForMatch(sessionId, bossList);
-                        this.printMatches();
+                        this.logger.info(JSON.stringify(this.bossesInMatch[sessionId]));
                         return JSON.stringify({response: "OK"});
                     }
                 }

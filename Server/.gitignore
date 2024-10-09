@@ -4,3 +4,4 @@
 **/dist/
 updateTypes.ps1
 NewTypes/
+**/.vs/
