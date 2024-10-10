@@ -18,7 +18,7 @@ using SPT.Common.Http;
 using Newtonsoft.Json;
 
 namespace BossNotifier {
-    [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.5.1")]
+    [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.5.1.1")]
     [BepInDependency("com.fika.core", BepInDependency.DependencyFlags.SoftDependency)]
     public class BossNotifierPlugin : BaseUnityPlugin {
         public static FieldInfo FikaIsPlayerHost;
