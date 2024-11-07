@@ -37,7 +37,7 @@ namespace BossNotifier {
 
 
         // Logging methods
-        public static void Log(LogLevel level, string msg) {
+        public static void Log(string msg, LogLevel level = LogLevel.Info) {
             logger.Log(level, msg);
         }
 
@@ -141,7 +141,7 @@ namespace BossNotifier {
             // Subscribe to config changes
             Config.SettingChanged += Config_SettingChanged;
 
-            Logger.LogInfo($"Plugin BossNotifier is loaded!");
+            Logger.LogInfo($"BossNotifier {Info.Metadata.Version} is loaded!");
         }
 
         // Event handler for configuration changes
@@ -215,12 +215,15 @@ namespace BossNotifier {
             if (__instance.ShallSpawn) {
                 // Get it's name, if no name found then return.
                 string name = BossNotifierPlugin.GetBossName(__instance.BossType);
-                if (name == null) return;
+                if (name == null) {
+                    BossNotifierPlugin.Log($"BossLocationSpawnPatch: No boss name found for WildType {__instance.BossType}");
+                    return;
+                }
 
                 // Get the spawn location
                 string location = BossNotifierPlugin.GetZoneName(__instance.BornZone);
 
-                BossNotifierPlugin.Log(LogLevel.Debug, $"Boss {name} @ zone {__instance.BornZone} translated to {(location == null ? __instance.BornZone.Replace("Bot", "").Replace("Zone", ""): location)}");
+                BossNotifierPlugin.Log($"Boss {name} @ zone {__instance.BornZone} translated to {(location == null ? __instance.BornZone.Replace("Bot", "").Replace("Zone", "") : location)}");
 
                 if (location == null) {
                     // If it's null then use cleaned up BornZone
@@ -248,21 +251,32 @@ namespace BossNotifier {
             WildSpawnType role = __instance.Owner.Profile.Info.Settings.Role;
             // Get it's name, if no name found then return.
             string name = BossNotifierPlugin.GetBossName(role);
-            if (name == null) return;
+            if (name == null) {
+                BossNotifierPlugin.Log($"BotBossPatch: No boss name found for WildType {role}");
+                return;
+            }
 
             // Get the spawn location
             Vector3 positionVector = __instance.Player().Position;
             string position = $"{(int)positionVector.x}, {(int)positionVector.y}, {(int)positionVector.z}";
             // {name} has spawned at (x, y, z) on {map}
-            BossNotifierPlugin.Log(LogLevel.Info, $"{name} has spawned at {position} on {Singleton<GameWorld>.Instance.LocationId}");
+            BossNotifierPlugin.Log($"BotBossPatch: {name} has spawned at {position} on {Singleton<GameWorld>.Instance.LocationId}");
 
             // Add boss to spawnedBosses
             spawnedBosses.Add(name);
 
             if (BossNotifierMono.Instance.intelCenterLevel >= BossNotifierPlugin.intelCenterDetectedUnlockLevel.Value) {
-                NotificationManagerClass.DisplayMessageNotification($"{name} {(BossNotifierPlugin.pluralBosses.Contains(name) ? "have" : "has")} been detected in your vicinity.", ENotificationDurationType.Long);
+                string detectedInVicinityMessage = $"{name} {(BossNotifierPlugin.pluralBosses.Contains(name) ? "have" : "has")} been detected in your vicinity.";
+                NotificationManagerClass.DisplayMessageNotification(detectedInVicinityMessage, ENotificationDurationType.Long);
+                BossNotifierPlugin.Log($"BotBossPatch: Showing notification \"{detectedInVicinityMessage}\"");
                 BossNotifierMono.Instance.GenerateBossNotifications();
             }
+
+            string spawnedBossesList = "Bosses spawned in raid:";
+            foreach (string spawnedBoss in spawnedBosses) {
+                spawnedBossesList += $"\n{spawnedBoss}";
+            }
+            BossNotifierPlugin.Log($"BotBossPatch: {spawnedBossesList}");
         }
     }
 
@@ -272,6 +286,7 @@ namespace BossNotifier {
 
         [PatchPrefix]
         public static void PatchPrefix() {
+            BossNotifierPlugin.Log($"NewGamePatch: Game started on map {Singleton<GameWorld>.Instance.LocationId}");
             // Start BossNotifierMono
             BossNotifierMono.Init();
         }
@@ -290,7 +305,6 @@ namespace BossNotifier {
         public int intelCenterLevel;
 
         private void SendBossNotifications() {
-            // this should be removed as we're gonna get the data from server now if its a client
             if (intelCenterLevel < BossNotifierPlugin.intelCenterUnlockLevel.Value) return;
 
             // If we have no notifications to display, send one saying there's no bosses located.
@@ -309,7 +323,6 @@ namespace BossNotifier {
             BotBossPatch.spawnedBosses.Clear();
             if (Singleton<GameWorld>.Instantiated) {
                 Instance = Singleton<GameWorld>.Instance.GetOrAddComponent<BossNotifierMono>();
-                BossNotifierPlugin.Log(LogLevel.Info, $"Game started on map {Singleton<GameWorld>.Instance.LocationId}");
                 if (ClientAppUtils.GetMainApp().GetClientBackEndSession() == null) {
                     Instance.intelCenterLevel = 0;
                 } else {
@@ -319,7 +332,12 @@ namespace BossNotifier {
         }
 
         public void Start() {
+            bool hasFika = BossNotifierPlugin.FikaIsPlayerHost == null;
+            BossNotifierPlugin.Log($"Has Fika: {hasFika}");
+
             if (IsHost()) {
+
+                BossNotifierPlugin.Log($"Host: Sending boss list to server: {JsonConvert.SerializeObject(BossLocationSpawnPatch.bossesInRaid)}");
                 // Send out the boss list to the server (if we're using fika and the host!)
                 RequestHandler.PostJsonAsync("/setbosses/", JsonConvert.SerializeObject(BossLocationSpawnPatch.bossesInRaid));
                 // Generate notifications
@@ -336,6 +354,8 @@ namespace BossNotifier {
         }
 
         public void FikaClientSpecificInit() {
+            UpdateBossListFromServer();
+
             // Generate notifications
             GenerateBossNotifications();
 
@@ -365,19 +385,22 @@ namespace BossNotifier {
 
         public void UpdateBossListFromServer() {
             string req = RequestHandler.GetJson("/getbosses/");
+            BossNotifierPlugin.Log($"Client: Requested boss list from server: {req}");
             var bosses = JsonConvert.DeserializeObject<BossList>(req);
 
+            BossLocationSpawnPatch.bossesInRaid.Clear();
             foreach (var boss in bosses.bosses) {
                 BossLocationSpawnPatch.bossesInRaid.Add(boss.Key, boss.Value);
             }
+
+            string bossesInRaidAfterRequest = "Client bossesInRaid after server request:";
+            foreach (var boss in BossLocationSpawnPatch.bossesInRaid) {
+                bossesInRaidAfterRequest += $"\n {boss.Key}, {boss.Value}";
+            }
+            BossNotifierPlugin.Log(bossesInRaidAfterRequest);
         }
 
         public void GenerateBossNotifications() {
-            if (!IsHost()) {
-                // we're a client, grab the bosslist from the server
-                UpdateBossListFromServer();
-            }
-
             // Clear out boss notification cache
             bossNotificationMessages = new List<string>();
 
@@ -409,6 +432,7 @@ namespace BossNotifier {
                 }
                 // Add notification to cache list
                 bossNotificationMessages.Add(notificationMessage);
+                BossNotifierPlugin.Log($"Generated Notification: {notificationMessage}");
             }
 
         }
