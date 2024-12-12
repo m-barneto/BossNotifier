@@ -56,6 +56,7 @@ namespace BossNotifier {
             { WildSpawnType.crazyAssaultEvent, "Crazy Scavs" },
             { WildSpawnType.exUsec, "Rogues" },
             { WildSpawnType.bossKolontay, "Kollontay" },
+            { WildSpawnType.peacemaker, "Partisan" },
             { (WildSpawnType)4206927, "Punisher" },
             { (WildSpawnType)199, "Legion" },
         };
