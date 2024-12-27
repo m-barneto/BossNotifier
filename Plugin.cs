@@ -15,8 +15,10 @@ using System;
 using System.Linq;
 using HarmonyLib;
 
+#pragma warning disable IDE0051 // Remove unused private members
+
 namespace BossNotifier {
-    [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.5.1")]
+    [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.5.3")]
     [BepInDependency("com.fika.core", BepInDependency.DependencyFlags.SoftDependency)]
     public class BossNotifierPlugin : BaseUnityPlugin {
         public static FieldInfo FikaIsPlayerHost;
@@ -56,6 +58,7 @@ namespace BossNotifier {
             { WildSpawnType.crazyAssaultEvent, "Crazy Scavs" },
             { WildSpawnType.exUsec, "Rogues" },
             { WildSpawnType.bossKolontay, "Kollontay" },
+            { WildSpawnType.bossPartisan, "Partisan" },
             { (WildSpawnType)4206927, "Punisher" },
             { (WildSpawnType)199, "Legion" },
         };
@@ -241,6 +244,9 @@ namespace BossNotifier {
         // Bosses spawned in raid
         public static HashSet<string> spawnedBosses = new HashSet<string>();
 
+        // Notification queue
+        public static Queue<string> vicinityNotifications = new Queue<string>();
+
         [PatchPostfix]
         private static void PatchPostfix(BotBoss __instance) {
             WildSpawnType role = __instance.Owner.Profile.Info.Settings.Role;
@@ -257,10 +263,12 @@ namespace BossNotifier {
             // Add boss to spawnedBosses
             spawnedBosses.Add(name);
 
-            if (BossNotifierMono.Instance.intelCenterLevel >= BossNotifierPlugin.intelCenterDetectedUnlockLevel.Value) {
-                NotificationManagerClass.DisplayMessageNotification($"{name} {(BossNotifierPlugin.pluralBosses.Contains(name) ? "have" : "has")} been detected in your vicinity.", ENotificationDurationType.Long);
-                BossNotifierMono.Instance.GenerateBossNotifications();
-            }
+            vicinityNotifications.Enqueue($"{name} {(BossNotifierPlugin.pluralBosses.Contains(name) ? "have" : "has")} been detected in your vicinity.");
+
+            //if (BossNotifierMono.Instance.intelCenterLevel >= BossNotifierPlugin.intelCenterDetectedUnlockLevel.Value) {
+            //    NotificationManagerClass.DisplayMessageNotification($"{name} {(BossNotifierPlugin.pluralBosses.Contains(name) ? "have" : "has")} been detected in your vicinity.", ENotificationDurationType.Long);
+            //    BossNotifierMono.Instance.GenerateBossNotifications();
+            //}
         }
     }
 
@@ -307,7 +315,7 @@ namespace BossNotifier {
                 if (ClientAppUtils.GetMainApp().GetClientBackEndSession() == null) {
                     Instance.intelCenterLevel = 0;
                 } else {
-                    Instance.intelCenterLevel = ClientAppUtils.GetMainApp().GetClientBackEndSession().Profile.Hideout.Areas[11].level;
+                    Instance.intelCenterLevel = ClientAppUtils.GetMainApp().GetClientBackEndSession().Profile.Hideout.Areas[11].Level;
                 }
             }
         }
@@ -320,6 +328,14 @@ namespace BossNotifier {
         }
 
         public void Update() {
+            if (BotBossPatch.vicinityNotifications.Count > 0) {
+                string notif = BotBossPatch.vicinityNotifications.Dequeue();
+                if (Instance.intelCenterLevel >= BossNotifierPlugin.intelCenterDetectedUnlockLevel.Value) {
+                    NotificationManagerClass.DisplayMessageNotification(notif, ENotificationDurationType.Long);
+                    Instance.GenerateBossNotifications();
+                }
+            }
+
             if (IsKeyPressed(BossNotifierPlugin.showBossesKeyCode.Value)) {
                 SendBossNotifications();
             }
