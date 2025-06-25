@@ -38,6 +38,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Plugin.cs" />
+    <Compile Include="FikaIntegration.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -67,8 +68,17 @@
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>References\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
+    <Reference Include="com.fika.core">
+      <HintPath>References\Fika.Core.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <ItemGroup>
+    <ProjectReference Include="packets\BossNotifier.fika.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="packets\BossNotifier.fika.csproj" />
+  </ItemGroup>
   <PropertyGroup>
     <PostBuildEvent>mkdir $(TargetDir)BepInEx\plugins\
 copy /Y "$(TargerDir)$(TargetFileName)" "C:\Games\SPT 3.10.3\BepInEx\plugins\$(TargetFileName)"

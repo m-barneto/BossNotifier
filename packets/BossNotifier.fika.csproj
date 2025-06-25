@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net471</TargetFramework>
+    <AssemblyName>BossNotifier.fika</AssemblyName>
+    <RootNamespace>BossNotifier.Packets</RootNamespace>
+    <OutputType>Library</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="com.fika.core">
+      <HintPath>..\References\Fika.Core.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>
+
