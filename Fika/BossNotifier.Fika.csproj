@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="0Harmony">
+      <HintPath>..\References\0Harmony.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>..\References\Assembly-CSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="BepInEx">
+      <HintPath>..\References\BepInEx.dll</HintPath>
+    </Reference>
+    <Reference Include="Comfort">
+      <HintPath>..\References\Comfort.dll</HintPath>
+    </Reference>
+    <Reference Include="Comfort.Unity">
+      <HintPath>..\References\Comfort.Unity.dll</HintPath>
+    </Reference>
+    <Reference Include="Fika.Core">
+      <HintPath>..\References\Fika.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>..\References\UnityEngine.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>..\References\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="BossNotifier">
+      <HintPath>..\bin\Release\netstandard2.1\BossNotifier.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <SPTPath Condition="'$(SPTPath)' == ''">C:\SPT</SPTPath>
+  </PropertyGroup>
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="copy /Y &quot;$(TargetPath)&quot; &quot;$(TargetDir)BossNotifier.FikaOptional.dll.bin&quot;" />
+    <Exec Command="copy /Y &quot;$(TargetDir)BossNotifier.FikaOptional.dll.bin&quot; &quot;..\bin\Release\netstandard2.1\BepInEx\plugins\BossNotifier\BossNotifier.FikaOptional.dll.bin&quot;" />
+    <Exec Command="if exist &quot;$(SPTPath)\BepInEx\plugins\BossNotifier\&quot; copy /Y &quot;$(TargetDir)BossNotifier.FikaOptional.dll.bin&quot; &quot;$(SPTPath)\BepInEx\plugins\BossNotifier\BossNotifier.FikaOptional.dll.bin&quot;" />
+  </Target>
+</Project>

@@ -2,6 +2,7 @@
 using SPT.Reflection.Patching;
 using SPT.Reflection.Utils;
 using System.Reflection;
+using System.IO;
 using UnityEngine;
 using EFT.Communications;
 using EFT;
@@ -18,10 +19,11 @@ using HarmonyLib;
 #pragma warning disable IDE0051 // Remove unused private members
 
 namespace BossNotifier {
-    [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "1.5.4")]
+    [BepInPlugin("Mattdokn.BossNotifier", "BossNotifier", "2.0.1")]
     [BepInDependency("com.fika.core", BepInDependency.DependencyFlags.SoftDependency)]
     public class BossNotifierPlugin : BaseUnityPlugin {
-        public static FieldInfo FikaIsPlayerHost;
+        public static PropertyInfo FikaIsPlayerHost;
+        private static Type FikaIntegrationType;
 
 
         // Configuration entries
@@ -109,10 +111,55 @@ namespace BossNotifier {
 
         private void Awake() {
             logger = Logger;
+            Log(LogLevel.Info, "[BossNotifier] Awake() called");
 
-            Type FikaUtilExternalType = Type.GetType("Fika.Core.Coop.Utils.FikaBackendUtils, Fika.Core", false);
+            // Detect Fika EARLY to subscribe to network events before they fire
+            Type FikaUtilExternalType = Type.GetType("Fika.Core.Main.Utils.FikaBackendUtils, Fika.Core", false);
             if (FikaUtilExternalType != null) {
-                FikaIsPlayerHost = AccessTools.Field(FikaUtilExternalType, "MatchingType");
+                // Search for Fika.Core assembly
+                System.Reflection.Assembly fikaAssembly = null;
+                foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies()) {
+                    if (assembly.GetName().Name == "Fika.Core") {
+                        fikaAssembly = assembly;
+                        break;
+                    }
+                }
+
+                if (fikaAssembly != null) {
+                    Type fikaBackendUtils = fikaAssembly.GetType("Fika.Core.Main.Utils.FikaBackendUtils");
+                    if (fikaBackendUtils != null) {
+                        FikaIsPlayerHost = AccessTools.Property(fikaBackendUtils, "ClientType");
+                        Log(LogLevel.Info, "[BossNotifier] ✓ Fika detected in Awake! Initializing integration...");
+
+                        try {
+                            // Load BossNotifier.FikaOptional.dll.bin from same directory as main DLL
+                            string pluginDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                            string fikaPath = Path.Combine(pluginDir, "BossNotifier.FikaOptional.dll.bin");
+
+                            if (File.Exists(fikaPath)) {
+                                Log(LogLevel.Info, $"[BossNotifier] Loading Fika integration from {fikaPath}");
+                                Assembly fikaAsm = Assembly.LoadFrom(fikaPath);
+                                FikaIntegrationType = fikaAsm.GetType("BossNotifier.FikaIntegration");
+
+                                if (FikaIntegrationType != null) {
+                                    MethodInfo initMethod = FikaIntegrationType.GetMethod("Initialize", BindingFlags.Public | BindingFlags.Static);
+                                    if (initMethod != null) {
+                                        initMethod.Invoke(null, null);
+                                        Log(LogLevel.Info, "[BossNotifier] ✓ Fika integration initialized in Awake");
+                                    } else {
+                                        Log(LogLevel.Error, "[BossNotifier] Could not find Initialize method in FikaIntegration");
+                                    }
+                                } else {
+                                    Log(LogLevel.Error, "[BossNotifier] Could not load FikaIntegration type from assembly");
+                                }
+                            } else {
+                                Log(LogLevel.Info, "[BossNotifier] BossNotifier.FikaOptional.dll.bin not found, running in singleplayer mode");
+                            }
+                        } catch (Exception ex) {
+                            Log(LogLevel.Error, $"[BossNotifier] Failed to initialize Fika integration: {ex}");
+                        }
+                    }
+                }
             }
 
             // Initialize configuration entries
@@ -176,6 +223,78 @@ namespace BossNotifier {
             }
             return sb.ToString().Replace("_", " ").Trim();
         }
+
+        // Fika helper methods
+        public static bool IsFikaInstalled() {
+            bool installed = FikaIsPlayerHost != null;
+            Log(LogLevel.Debug, $"[BossNotifier] IsFikaInstalled: {installed}");
+            return installed;
+        }
+
+        public static bool IsHost() {
+            if (!IsFikaInstalled()) {
+                Log(LogLevel.Debug, "[BossNotifier] IsHost: false (Fika not installed)");
+                return false;
+            }
+            int clientType = (int)FikaIsPlayerHost.GetValue(null);
+            bool isHost = clientType == 2;  // 2 = Host
+            Log(LogLevel.Debug, $"[BossNotifier] IsHost: {isHost} (ClientType: {clientType})");
+            return isHost;
+        }
+
+        public static bool IsClient() {
+            if (!IsFikaInstalled()) {
+                Log(LogLevel.Debug, "[BossNotifier] IsClient: false (Fika not installed)");
+                return false;
+            }
+            int clientType = (int)FikaIsPlayerHost.GetValue(null);
+            bool isClient = clientType == 1;  // 1 = Client
+            Log(LogLevel.Debug, $"[BossNotifier] IsClient: {isClient} (ClientType: {clientType})");
+            return isClient;
+        }
+
+        public static bool IsSingleplayer() {
+            bool isSP = !IsFikaInstalled();
+            Log(LogLevel.Debug, $"[BossNotifier] IsSingleplayer: {isSP}");
+            return isSP;
+        }
+
+        // Reflection-based helper methods to call FikaIntegration
+        public static void SendVicinityNotificationToClients(string message) {
+            if (FikaIntegrationType == null) {
+                Log(LogLevel.Warning, "[BossNotifier] FikaIntegration type not loaded, cannot send vicinity notification");
+                return;
+            }
+
+            try {
+                MethodInfo method = FikaIntegrationType.GetMethod("SendVicinityNotificationToClients", BindingFlags.Public | BindingFlags.Static);
+                if (method != null) {
+                    method.Invoke(null, new object[] { message });
+                } else {
+                    Log(LogLevel.Error, "[BossNotifier] Could not find SendVicinityNotificationToClients method");
+                }
+            } catch (Exception ex) {
+                Log(LogLevel.Error, $"[BossNotifier] Error calling SendVicinityNotificationToClients: {ex}");
+            }
+        }
+
+        public static void SendBossInfoRequest() {
+            if (FikaIntegrationType == null) {
+                Log(LogLevel.Warning, "[BossNotifier] FikaIntegration type not loaded, cannot send boss info request");
+                return;
+            }
+
+            try {
+                MethodInfo method = FikaIntegrationType.GetMethod("SendBossInfoRequest", BindingFlags.Public | BindingFlags.Static);
+                if (method != null) {
+                    method.Invoke(null, null);
+                } else {
+                    Log(LogLevel.Error, "[BossNotifier] Could not find SendBossInfoRequest method");
+                }
+            } catch (Exception ex) {
+                Log(LogLevel.Error, $"[BossNotifier] Error calling SendBossInfoRequest: {ex}");
+            }
+        }
     }
 
     // Patch for tracking boss location spawns
@@ -188,7 +307,7 @@ namespace BossNotifier {
         // Add boss spawn if not already present
         private static void TryAddBoss(string boss, string location) {
             if (location == null) {
-                Logger.LogError("Tried to add boss with null location.");
+                BossNotifierPlugin.Log(LogLevel.Error, "Tried to add boss with null location.");
                 return;
             }
             // If boss is already added
@@ -212,27 +331,32 @@ namespace BossNotifier {
         // Handle boss location spawns
         [PatchPostfix]
         private static void PatchPostfix(BossLocationSpawn __instance) {
-            // If the boss will spawn
-            if (__instance.ShallSpawn) {
-                // Get it's name, if no name found then return.
-                string name = BossNotifierPlugin.GetBossName(__instance.BossType);
-                if (name == null) return;
+            try {
+                // If the boss will spawn
+                if (__instance.ShallSpawn) {
+                    // Get it's name, if no name found then return.
+                    string name = BossNotifierPlugin.GetBossName(__instance.BossType);
+                    if (name == null) return;
 
-                // Get the spawn location
-                string location = BossNotifierPlugin.GetZoneName(__instance.BornZone);
+                    // Get the spawn location
+                    string location = BossNotifierPlugin.GetZoneName(__instance.BornZone);
 
-                BossNotifierPlugin.Log(LogLevel.Info, $"Boss {name} @ zone {__instance.BornZone} translated to {(location == null ? __instance.BornZone.Replace("Bot", "").Replace("Zone", ""): location)}");
+                    BossNotifierPlugin.Log(LogLevel.Info, $"Boss {name} @ zone {__instance.BornZone} translated to {(location == null ? __instance.BornZone.Replace("Bot", "").Replace("Zone", ""): location)}");
 
-                if (location == null) {
-                    // If it's null then use cleaned up BornZone
-                    TryAddBoss(name, __instance.BornZone.Replace("Bot", "").Replace("Zone", ""));
-                } else if (location.Equals("")) {
-                    // If it's empty location (Factory Spawn)
-                    TryAddBoss(name, "");
-                } else {
-                    // Location is valid
-                    TryAddBoss(name, location);
+                    if (location == null) {
+                        // If it's null then use cleaned up BornZone
+                        TryAddBoss(name, __instance.BornZone.Replace("Bot", "").Replace("Zone", ""));
+                    } else if (location.Equals("")) {
+                        // If it's empty location (Factory Spawn)
+                        TryAddBoss(name, "");
+                    } else {
+                        // Location is valid
+                        TryAddBoss(name, location);
+                    }
                 }
+            } catch (Exception ex) {
+                BossNotifierPlugin.Log(LogLevel.Error, $"[BossNotifier] Error in BossLocationSpawnPatch: {ex}");
+                throw;
             }
         }
     }
@@ -249,37 +373,53 @@ namespace BossNotifier {
 
         [PatchPostfix]
         private static void PatchPostfix(BotBoss __instance) {
-            WildSpawnType role = __instance.Owner.Profile.Info.Settings.Role;
-            // Get it's name, if no name found then return.
-            string name = BossNotifierPlugin.GetBossName(role);
-            if (name == null) return;
+            try {
+                WildSpawnType role = __instance.Owner.Profile.Info.Settings.Role;
+                // Get it's name, if no name found then return.
+                string name = BossNotifierPlugin.GetBossName(role);
+                if (name == null) return;
 
-            // Get the spawn location
-            Vector3 positionVector = __instance.Player().Position;
-            string position = $"{(int)positionVector.x}, {(int)positionVector.y}, {(int)positionVector.z}";
-            // {name} has spawned at (x, y, z) on {map}
-            BossNotifierPlugin.Log(LogLevel.Info, $"{name} has spawned at {position} on {Singleton<GameWorld>.Instance.LocationId}");
+                // Get the spawn location
+                Vector3 positionVector = __instance.Player().Position;
+                string position = $"{(int)positionVector.x}, {(int)positionVector.y}, {(int)positionVector.z}";
+                // {name} has spawned at (x, y, z) on {map}
+                BossNotifierPlugin.Log(LogLevel.Info, $"{name} has spawned at {position} on {Singleton<GameWorld>.Instance.LocationId}");
 
-            // Add boss to spawnedBosses
-            spawnedBosses.Add(name);
+                // Add boss to spawnedBosses
+                spawnedBosses.Add(name);
 
-            vicinityNotifications.Enqueue($"{name} {(BossNotifierPlugin.pluralBosses.Contains(name) ? "have" : "has")} been detected in your vicinity.");
+                // Create vicinity notification message
+                string vicinityMessage = $"{name} {(BossNotifierPlugin.pluralBosses.Contains(name) ? "have" : "has")} been detected in your vicinity.";
 
-            //if (BossNotifierMono.Instance.intelCenterLevel >= BossNotifierPlugin.intelCenterDetectedUnlockLevel.Value) {
-            //    NotificationManagerClass.DisplayMessageNotification($"{name} {(BossNotifierPlugin.pluralBosses.Contains(name) ? "have" : "has")} been detected in your vicinity.", ENotificationDurationType.Long);
-            //    BossNotifierMono.Instance.GenerateBossNotifications();
-            //}
+                // Enqueue for local display
+                vicinityNotifications.Enqueue(vicinityMessage);
+
+                // If Fika is installed and we're the host, send to all clients
+                if (BossNotifierPlugin.IsFikaInstalled() && BossNotifierPlugin.IsHost())
+                {
+                    BossNotifierPlugin.Log(LogLevel.Info, $"[BossNotifier] Host detected, sending vicinity notification to clients: {vicinityMessage}");
+                    BossNotifierPlugin.SendVicinityNotificationToClients(vicinityMessage);
+                }
+            } catch (Exception ex) {
+                BossNotifierPlugin.Log(LogLevel.Error, $"[BossNotifier] Error in BotBossPatch: {ex}");
+                throw;
+            }
         }
     }
 
     // Patch for hooking when a raid is started
     internal class NewGamePatch : ModulePatch {
-        protected override MethodBase GetTargetMethod() => typeof(GameWorld).GetMethod("OnGameStarted");
+        protected override MethodBase GetTargetMethod() => typeof(GameWorld).GetMethod(nameof(GameWorld.OnGameStarted));
 
-        [PatchPrefix]
-        public static void PatchPrefix() {
-            // Start BossNotifierMono
-            BossNotifierMono.Init();
+        [PatchPostfix]
+        public static void PatchPostfix() {
+            try {
+                // Start BossNotifierMono
+                BossNotifierMono.Init();
+            } catch (Exception ex) {
+                BossNotifierPlugin.Log(LogLevel.Error, $"[BossNotifier] Error in NewGamePatch: {ex}");
+                throw;
+            }
         }
     }
 
@@ -321,9 +461,72 @@ namespace BossNotifier {
         }
 
         public void Start() {
-            GenerateBossNotifications();
+            BossNotifierPlugin.Log(LogLevel.Info, "[BossNotifier] BossNotifierMono.Start() called");
 
-            if (!BossNotifierPlugin.showNotificationsOnRaidStart.Value) return;
+            // Log Fika state for diagnostics (detection already done in Awake)
+            BossNotifierPlugin.Log(LogLevel.Info, $"[BossNotifier] Fika installed: {BossNotifierPlugin.IsFikaInstalled()}");
+            if (BossNotifierPlugin.IsFikaInstalled()) {
+                int clientType = (int)BossNotifierPlugin.FikaIsPlayerHost.GetValue(null);
+                string clientTypeStr = clientType == 0 ? "None" : (clientType == 1 ? "Client" : (clientType == 2 ? "Host" : "Unknown"));
+                BossNotifierPlugin.Log(LogLevel.Info, $"[BossNotifier] ClientType at Start(): {clientType} ({clientTypeStr})");
+            }
+
+            GenerateBossNotifications();
+            BossNotifierPlugin.Log(LogLevel.Debug, "[BossNotifier] After GenerateBossNotifications, checking config...");
+            BossNotifierPlugin.Log(LogLevel.Debug, $"[BossNotifier] showNotificationsOnRaidStart = {BossNotifierPlugin.showNotificationsOnRaidStart.Value}");
+
+            if (!BossNotifierPlugin.showNotificationsOnRaidStart.Value) {
+                BossNotifierPlugin.Log(LogLevel.Warning, "[BossNotifier] Auto-notifications disabled in config!");
+                return;
+            }
+
+            // Use retry mechanism to handle Fika initialization timing
+            BossNotifierPlugin.Log(LogLevel.Info, "[BossNotifier] Starting automatic notification scheduling with retries...");
+            StartCoroutine(TryScheduleAutomaticNotification());
+        }
+
+        // Coroutine to retry scheduling automatic notifications until Fika is ready
+        private System.Collections.IEnumerator TryScheduleAutomaticNotification()
+        {
+            int maxRetries = 10;
+            int retryCount = 0;
+            float retryInterval = 0.5f; // Check every 0.5 seconds
+
+            while (retryCount < maxRetries)
+            {
+                BossNotifierPlugin.Log(LogLevel.Debug, $"[BossNotifier] Attempt {retryCount + 1}/{maxRetries} to determine client/host mode...");
+                BossNotifierPlugin.Log(LogLevel.Debug, $"[BossNotifier]   IsClient() = {BossNotifierPlugin.IsClient()}");
+                BossNotifierPlugin.Log(LogLevel.Debug, $"[BossNotifier]   IsHost() = {BossNotifierPlugin.IsHost()}");
+
+                if (BossNotifierPlugin.IsClient())
+                {
+                    // Client: Request boss info after delay
+                    BossNotifierPlugin.Log(LogLevel.Info, "[BossNotifier] ✓ Client mode detected: Scheduling boss info request in 3.5s");
+                    Invoke("RequestBossInfoFromHost", 3.5f);
+                    yield break; // Success, exit coroutine
+                }
+                else if (BossNotifierPlugin.IsHost())
+                {
+                    // Host: Show after 2 seconds
+                    BossNotifierPlugin.Log(LogLevel.Info, "[BossNotifier] ✓ Host mode detected: Scheduling notifications in 2s");
+                    Invoke("SendBossNotifications", 2f);
+                    yield break; // Success, exit coroutine
+                }
+                else if (!BossNotifierPlugin.IsFikaInstalled())
+                {
+                    // Singleplayer: Show after 2 seconds
+                    BossNotifierPlugin.Log(LogLevel.Info, "[BossNotifier] ✓ Singleplayer mode detected: Scheduling notifications in 2s");
+                    Invoke("SendBossNotifications", 2f);
+                    yield break; // Success, exit coroutine
+                }
+
+                retryCount++;
+                BossNotifierPlugin.Log(LogLevel.Debug, $"[BossNotifier] Client/Host mode not determined yet, waiting {retryInterval}s...");
+                yield return new UnityEngine.WaitForSeconds(retryInterval);
+            }
+
+            // If we get here, we failed to determine mode after all retries
+            BossNotifierPlugin.Log(LogLevel.Warning, $"[BossNotifier] Failed to determine client/host mode after {maxRetries} retries, defaulting to singleplayer behavior");
             Invoke("SendBossNotifications", 2f);
         }
 
@@ -337,7 +540,16 @@ namespace BossNotifier {
             }
 
             if (IsKeyPressed(BossNotifierPlugin.showBossesKeyCode.Value)) {
-                SendBossNotifications();
+                BossNotifierPlugin.Log(LogLevel.Info, "[BossNotifier] Hotkey pressed!");
+                if (BossNotifierPlugin.IsClient()) {
+                    // Client: Request from host
+                    BossNotifierPlugin.Log(LogLevel.Info, "[BossNotifier] Client mode: Requesting boss info from host");
+                    RequestBossInfoFromHost();
+                } else {
+                    // Host/Singleplayer: Show directly
+                    BossNotifierPlugin.Log(LogLevel.Info, "[BossNotifier] Host/SP mode: Showing notifications directly");
+                    SendBossNotifications();
+                }
             }
         }
 
@@ -349,17 +561,28 @@ namespace BossNotifier {
         }
 
         public bool ShouldFunction() {
-            if (BossNotifierPlugin.FikaIsPlayerHost == null) return true;
-            return (int)BossNotifierPlugin.FikaIsPlayerHost.GetValue(null) == 2;
+            // NEW: Always return true (both host and client can function now)
+            // Clients will request data from host via packets
+            BossNotifierPlugin.Log(LogLevel.Debug, "[BossNotifier] ShouldFunction: true (clients now supported)");
+            return true;
         }
 
         public void GenerateBossNotifications() {
             // Clear out boss notification cache
             bossNotificationMessages = new List<string>();
 
-            // Check if it's daytime to prevent showing Cultist notif.
-            // This is the same method that DayTimeCultists patches so if that mod is installed then this always returns false
-            bool isDayTime = Singleton<IBotGame>.Instance.BotsController.ZonesLeaveController.IsDay();
+            // Check if it's daytime to prevent showing Cultist notif (with null checks for Fika clients)
+            bool isDayTime = false;
+            try {
+                if (Singleton<IBotGame>.Instance != null &&
+                    Singleton<IBotGame>.Instance.BotsController != null &&
+                    Singleton<IBotGame>.Instance.BotsController.ZonesLeaveController != null)
+                {
+                    isDayTime = Singleton<IBotGame>.Instance.BotsController.ZonesLeaveController.IsDay();
+                }
+            } catch (Exception ex) {
+                BossNotifierPlugin.Log(LogLevel.Warning, $"[BossNotifier] Could not determine day/night in GenerateBossNotifications: {ex.Message}");
+            }
 
             // Get whether location is unlocked or not.
             bool isLocationUnlocked = intelCenterLevel >= BossNotifierPlugin.intelCenterLocationUnlockLevel.Value;
@@ -387,6 +610,19 @@ namespace BossNotifier {
                 // Add notification to cache list
                 bossNotificationMessages.Add(notificationMessage);
             }
+        }
+
+        // Client method: Request boss info from host
+        private void RequestBossInfoFromHost() {
+            BossNotifierPlugin.Log(LogLevel.Info, "[BossNotifier] RequestBossInfoFromHost() called");
+
+            if (!BossNotifierPlugin.IsClient()) {
+                BossNotifierPlugin.Log(LogLevel.Warning, "[BossNotifier] RequestBossInfoFromHost called but not a client!");
+                return;
+            }
+
+            // Call into FikaIntegration via reflection to avoid loading Fika types when not installed
+            BossNotifierPlugin.SendBossInfoRequest();
         }
 
         // Credit to DrakiaXYZ, thank you!

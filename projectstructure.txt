@@ -1,0 +1,13 @@
+BossNotifier Two-DLL Architecture
+==================================
+
+The mod is split into two assemblies to support optional Fika integration:
+
+1. BossNotifier.dll - Main plugin with no Fika dependencies, works standalone in singleplayer
+2. BossNotifier.FikaOptional.dll.bin - Fika integration loaded conditionally when Fika.Core is present
+
+The .bin extension prevents BepInEx from auto-loading it. The main plugin loads it via Assembly.LoadFrom()
+only when Fika is detected, ensuring no errors occur when Fika is absent. This approach eliminates the need
+for complex reflection throughout the Fika integration code - FikaIntegration.cs uses direct references.
+
+Build: Use build.ps1 (handles build order and ensures .bin is packaged in zip)

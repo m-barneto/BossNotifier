@@ -1,6 +1,5 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
@@ -9,10 +8,12 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>BossNotifier</RootNamespace>
     <AssemblyName>BossNotifier</AssemblyName>
-    <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
+    <TargetFramework>netstandard2.1</TargetFramework>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
-    <TargetFrameworkProfile />
+    <LangVersion>latest</LangVersion>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <DefaultItemExcludes>$(DefaultItemExcludes);Fika\**</DefaultItemExcludes>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -37,10 +38,6 @@
     <RunPostBuildEvent>Always</RunPostBuildEvent>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Plugin.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
-  <ItemGroup>
     <Reference Include="0Harmony">
       <HintPath>References\0Harmony.dll</HintPath>
     </Reference>
@@ -56,10 +53,12 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>References\Comfort.dll</HintPath>
     </Reference>
+    <Reference Include="Comfort.Unity">
+      <HintPath>References\Comfort.Unity.dll</HintPath>
+    </Reference>
     <Reference Include="spt-reflection">
       <HintPath>References\spt-reflection.dll</HintPath>
     </Reference>
-    <Reference Include="System" />
     <Reference Include="UnityEngine">
       <HintPath>References\UnityEngine.dll</HintPath>
     </Reference>
@@ -67,11 +66,14 @@
       <HintPath>References\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
   </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>mkdir $(TargetDir)BepInEx\plugins\
-copy /Y "$(TargerDir)$(TargetFileName)" "C:\Games\SPT 3.10.3\BepInEx\plugins\$(TargetFileName)"
-copy /Y "$(TargetDir)$(TargetFileName)" "$(TargetDir)BepInEx\plugins\$(TargetFileName)"
-powershell.exe -command Compress-Archive -Force -Path BepInEx $(TargetName).zip</PostBuildEvent>
+    <SPTPath Condition="'$(SPTPath)' == ''">C:\SPT</SPTPath>
   </PropertyGroup>
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="if not exist &quot;$(TargetDir)BepInEx\plugins\BossNotifier\&quot; mkdir &quot;$(TargetDir)BepInEx\plugins\BossNotifier\&quot;" />
+    <Exec Command="copy /Y &quot;$(TargetPath)&quot; &quot;$(TargetDir)BepInEx\plugins\BossNotifier\$(TargetFileName)&quot;" />
+    <Exec Command="if exist &quot;$(SPTPath)\BepInEx\plugins\&quot; if not exist &quot;$(SPTPath)\BepInEx\plugins\BossNotifier\&quot; mkdir &quot;$(SPTPath)\BepInEx\plugins\BossNotifier\&quot;" />
+    <Exec Command="if exist &quot;$(SPTPath)\BepInEx\plugins\&quot; copy /Y &quot;$(TargetPath)&quot; &quot;$(SPTPath)\BepInEx\plugins\BossNotifier\$(TargetFileName)&quot;" />
+    <Exec Command="powershell.exe -command &quot;Compress-Archive -Force -Path '$(TargetDir)BepInEx' -DestinationPath '$(TargetDir)$(TargetName).zip'&quot;" />
+  </Target>
 </Project>

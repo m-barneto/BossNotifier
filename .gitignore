@@ -399,3 +399,6 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 /Server
+
+# Plan files (local only)
+plan.md
